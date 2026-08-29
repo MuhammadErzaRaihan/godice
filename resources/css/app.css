@@ -1,9 +1,307 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600;700;800&family=Silkscreen:wght@400;700&display=swap');
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+body {
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+    overflow-x: hidden;
+    transition: background-color 0.4s ease, background-image 0.4s ease;
+}
+
+.font-game {
+    font-family: 'Fredoka', cursive, sans-serif;
+}
+
+/* OUTLINE PUTIH & EFEK SHADOW DADU */
+.dice-box {
+    border: 5px solid #ffffff !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    transition: transform 0.2s ease, filter 0.3s ease;
+}
+
+.dice-box:hover {
+    transform: scale(1.06);
+}
+
+/* THEME 1: ARCADE (SAB-RED) - DEFAULT */
+body[data-theme="arcade"] {
+    background-color: #d94848;
+    background-image: 
+        radial-gradient(#b91c1c 15%, transparent 16%),
+        radial-gradient(#991b1b 15%, transparent 16%);
+    background-size: 60px 60px;
+    background-position: 0 0, 30px 30px;
+}
+body[data-theme="arcade"] .card-red {
+    background: linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%);
+    border: 3px solid #b91c1c;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+body[data-theme="arcade"] .card-inner {
+    background-color: #6b1414;
+    border: 1px solid #991b1b;
+}
+
+/* THEME 2: PIXEL CRAFT (MINECRAFT RETRO GREEN) */
+body[data-theme="pixel"] {
+    background-color: #0d231a;
+    background-image: 
+        linear-gradient(rgba(16, 185, 129, 0.15) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.15) 2px, transparent 2px);
+    background-size: 32px 32px;
+}
+body[data-theme="pixel"] header {
+    background-color: #061a12 !important;
+    border-color: #059669 !important;
+}
+body[data-theme="pixel"] footer {
+    background-color: #04140e !important;
+    border-color: #059669 !important;
+}
+body[data-theme="pixel"] .card-red {
+    background: #112a1e !important;
+    border: 4px solid #10b981 !important;
+    box-shadow: 8px 8px 0px #032015 !important;
+    border-radius: 12px !important;
+}
+body[data-theme="pixel"] .card-inner,
+body[data-theme="pixel"] select,
+body[data-theme="pixel"] .bg-red-950,
+body[data-theme="pixel"] .bg-red-950\/80,
+body[data-theme="pixel"] .bg-red-950\/90,
+body[data-theme="pixel"] .bg-red-950\/70,
+body[data-theme="pixel"] .bg-red-950\/60,
+body[data-theme="pixel"] .bg-red-900,
+body[data-theme="pixel"] .bg-red-900\/40,
+body[data-theme="pixel"] .bg-red-900\/80,
+body[data-theme="pixel"] .bg-red-900\/90 {
+    background-color: #0a1f16 !important;
+    border-color: #059669 !important;
+    border-radius: 8px !important;
+}
+body[data-theme="pixel"] .font-game {
+    font-family: 'Silkscreen', monospace;
+    letter-spacing: -0.04em;
+}
+body[data-theme="pixel"] .btn-yellow {
+    background: #10b981 !important;
+    color: #022c22 !important;
+    border-bottom: 5px solid #047857 !important;
+    text-shadow: none !important;
+    border-radius: 8px !important;
+    box-shadow: 4px 4px 0px #022c22 !important;
+}
+body[data-theme="pixel"] .btn-yellow:active {
+    transform: translateY(4px);
+    box-shadow: 0px 0px 0px #022c22 !important;
+}
+body[data-theme="pixel"] .text-red-100,
+body[data-theme="pixel"] .text-red-200,
+body[data-theme="pixel"] .text-red-300 {
+    color: #a7f3d0 !important;
+}
+body[data-theme="pixel"] .text-yellow-300 {
+    color: #34d399 !important;
+}
+
+/* THEME 3: LUXURY GOLD (CASINO OBSIDIAN) */
+body[data-theme="luxury"] {
+    background: radial-gradient(circle at center, #1e0b2e 0%, #0a0414 60%, #020105 100%);
+}
+body[data-theme="luxury"] header {
+    background-color: rgba(15, 6, 26, 0.95) !important;
+    border-color: #ca8a04 !important;
+}
+body[data-theme="luxury"] footer {
+    background-color: #0a0412 !important;
+    border-color: #854d0e !important;
+}
+body[data-theme="luxury"] .card-red {
+    background: rgba(22, 10, 36, 0.92) !important;
+    border: 2px solid #eab308 !important;
+    box-shadow: 0 0 35px rgba(234, 179, 8, 0.25), inset 0 0 15px rgba(234, 179, 8, 0.15) !important;
+    backdrop-filter: blur(12px) !important;
+    border-radius: 24px !important;
+}
+body[data-theme="luxury"] .card-inner,
+body[data-theme="luxury"] select,
+body[data-theme="luxury"] .bg-red-950,
+body[data-theme="luxury"] .bg-red-950\/80,
+body[data-theme="luxury"] .bg-red-950\/90,
+body[data-theme="luxury"] .bg-red-950\/70,
+body[data-theme="luxury"] .bg-red-950\/60,
+body[data-theme="luxury"] .bg-red-900,
+body[data-theme="luxury"] .bg-red-900\/40,
+body[data-theme="luxury"] .bg-red-900\/80,
+body[data-theme="luxury"] .bg-red-900\/90 {
+    background-color: rgba(35, 16, 56, 0.85) !important;
+    border-color: #ca8a04 !important;
+}
+body[data-theme="luxury"] .font-game {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+body[data-theme="luxury"] .btn-yellow {
+    background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%) !important;
+    color: #361a03 !important;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+    border-bottom: 5px solid #854d0e !important;
+    box-shadow: 0 6px 20px rgba(234, 179, 8, 0.4) !important;
+}
+body[data-theme="luxury"] .text-red-100,
+body[data-theme="luxury"] .text-red-200,
+body[data-theme="luxury"] .text-red-300 {
+    color: #fef08a !important;
+}
+
+/* THEME 4: MINIMALIST (SLEEK MONOCHROME) */
+body[data-theme="minimal"] {
+    background-color: #09090b;
+    background-image: radial-gradient(#27272a 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+body[data-theme="minimal"] header {
+    background-color: #18181b !important;
+    border-color: #27272a !important;
+}
+body[data-theme="minimal"] footer {
+    background-color: #09090b !important;
+    border-color: #27272a !important;
+}
+body[data-theme="minimal"] .card-red {
+    background: #18181b !important;
+    border: 1px solid #3f3f46 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+    border-radius: 20px !important;
+}
+body[data-theme="minimal"] .card-inner,
+body[data-theme="minimal"] select,
+body[data-theme="minimal"] .bg-red-950,
+body[data-theme="minimal"] .bg-red-950\/80,
+body[data-theme="minimal"] .bg-red-950\/90,
+body[data-theme="minimal"] .bg-red-950\/70,
+body[data-theme="minimal"] .bg-red-950\/60,
+body[data-theme="minimal"] .bg-red-900,
+body[data-theme="minimal"] .bg-red-900\/40,
+body[data-theme="minimal"] .bg-red-900\/80,
+body[data-theme="minimal"] .bg-red-900\/90 {
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+}
+body[data-theme="minimal"] .font-game {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+body[data-theme="minimal"] .btn-yellow {
+    background: #ffffff !important;
+    color: #09090b !important;
+    border-bottom: 5px solid #a1a1aa !important;
+    text-shadow: none !important;
+    box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.1) !important;
+}
+body[data-theme="minimal"] .text-red-100,
+body[data-theme="minimal"] .text-red-200,
+body[data-theme="minimal"] .text-red-300 {
+    color: #e4e4e7 !important;
+}
+body[data-theme="minimal"] .text-yellow-300 {
+    color: #ffffff !important;
+}
+
+/* VERIFY PAGE BLUE THEME */
+.bg-verify-theme {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 40%, #0369a1 100%);
+}
+
+.card-blue {
+    background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+    border: 3px solid #38bdf8;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+/* BUTTON 3D DEFAULT */
+.btn-yellow {
+    background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
+    color: #713f12;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+    border-bottom: 5px solid #ca8a04;
+    transition: all 0.15s ease;
+}
+
+.btn-yellow:active {
+    transform: translateY(3px);
+    border-bottom-width: 2px;
+    box-shadow: none;
+}
+
+/* ANTI-BAN HOVER PER-DIE EFFECT */
+.anti-ban-container .dice-box {
+    filter: blur(5px) opacity(0.7);
+    transition: filter 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+    cursor: pointer;
+}
+
+.anti-ban-container .dice-box:hover {
+    filter: blur(0px) opacity(1) !important;
+    transform: scale(1.12);
+    z-index: 30;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.9), 0 8px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* SCROLLBAR CUSTOM */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+/* ANIMASI LOADING DADU GETAR IN-PLACE */
+@keyframes diceTumble {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    20% { transform: translate(-2px, 1px) rotate(-2deg); }
+    40% { transform: translate(2px, -2px) rotate(2deg); }
+    60% { transform: translate(-1px, 2px) rotate(-1deg); }
+    80% { transform: translate(2px, 1px) rotate(1deg); }
+}
+
+.animate-dice-tumble {
+    animation: diceTumble 0.1s linear infinite;
+}
+
+@keyframes popText {
+    0%, 100% { transform: scale(1) rotate(-1deg); }
+    50% { transform: scale(1.12) rotate(2deg); }
+}
+
+.animate-pop-text {
+    animation: popText 0.4s ease-in-out infinite;
+}
+
+/* CYBERPUNK PURPLE ADMIN PANEL STYLING */
+body.admin-cyberpunk {
+    background-color: #03000a !important;
+    background-image: 
+        radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 70%),
+        linear-gradient(rgba(168, 85, 247, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168, 85, 247, 0.05) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 24px 24px, 24px 24px !important;
+}
+
+/* Neon Glow Effect Cards */
+.cyberpunk-card {
+    background: rgba(15, 7, 28, 0.9) !important;
+    border: 2px solid #a855f7 !important;
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.25), inset 0 0 10px rgba(168, 85, 247, 0.1) !important;
+    backdrop-filter: blur(8px);
 }

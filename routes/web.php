@@ -1,4 +1,4 @@
-use Illuminate\Support\Facades\Route;
+<!-- use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DiceController;
 use App\Http\Controllers\AdminController;
 
@@ -14,4 +14,15 @@ Route::prefix('admin-panel')->name('admin.')->group(function () {
     Route::post('/preset-rig', [AdminController::class, 'applyPreset'])->name('preset-rig');
     Route::post('/streamers', [AdminController::class, 'addStreamer'])->name('streamers.add');
     Route::delete('/streamers/{id}', [AdminController::class, 'removeStreamer'])->name('streamers.remove');
-});
+}); -->
+
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+// --- PUBLIC UI ROUTES ---
+Route::view('/', 'dice.index')->name('dice.index');
+Route::view('/verify', 'dice.verify')->name('dice.verify');
+
+// --- ADMIN UI ROUTE ---
+Route::view('/admin-panel', 'admin.index')->name('admin.index');
