@@ -7,18 +7,22 @@
         YOUR LAST 20 ROLLS
     </h4>
 
-    <!-- Roll Stats Breakdown -->
-    <div class="bg-red-950/80 rounded-2xl p-3 border border-red-800 mb-4 text-xs space-y-2">
-        <div class="font-bold text-red-200 uppercase tracking-wider text-[10px]">STATS:</div>
-        <div id="stats-color-breakdown" class="flex flex-wrap gap-1.5">
-            <!-- Populated dynamically via JS -->
+    <!-- Roll Stats Breakdown Area -->
+    <div class="bg-red-950/80 rounded-2xl p-4 border border-red-800/80 mb-4 text-xs space-y-3">
+        <!-- STATS SECTION -->
+        <div>
+            <div class="font-bold text-red-200 uppercase tracking-wider text-[10px] mb-1.5">STATS:</div>
+            <div id="stats-color-breakdown" class="flex flex-wrap gap-2">
+                <!-- Rendered dynamically via JS -->
+            </div>
         </div>
 
-        <div class="pt-2 border-t border-red-900 flex items-center gap-2">
-            <span class="font-bold text-red-200 uppercase tracking-wider text-[10px]">LONGEST STREAK:</span>
-            <span id="stats-longest-streak" class="bg-red-900 px-2.5 py-1 rounded-lg text-yellow-300 font-bold border border-red-700">
-                Red x5 🔥
-            </span>
+        <!-- LONGEST STREAK SECTION -->
+        <div class="pt-2 border-t border-red-900/80">
+            <div class="font-bold text-red-200 uppercase tracking-wider text-[10px] mb-1.5">LONGEST STREAK:</div>
+            <div id="stats-longest-streak" class="flex flex-wrap gap-2">
+                <!-- Rendered dynamically via JS -->
+            </div>
         </div>
     </div>
 

@@ -134,7 +134,7 @@ export function renderMainDiceGrid() {
         box.style.backgroundColor = colorConfig.bg;
 
         const dot = document.createElement('div');
-        dot.className = 'w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full shadow-inner';
+        dot.className = 'w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 bg-white rounded-full shadow-inner';
         
         box.appendChild(dot);
         container.appendChild(box);
@@ -177,10 +177,13 @@ export function updateDiceCount(val) {
     executeRoll();
 }
 
+// resources/js/dice-engine.js -> renderLast20Panel()
+
 export function renderLast20Panel() {
     const rolls = state.history.slice(0, 20);
     if (rolls.length === 0) return;
 
+    // 1. Hitung total kemunculan tiap warna dalam 20 roll terakhir
     const colorCounts = {};
     ALL_COLORS.forEach(c => colorCounts[c] = 0);
 
@@ -190,8 +193,31 @@ export function renderLast20Panel() {
         });
     });
 
+    // 2. Render STATS: Menampilkan pill icon dadu + xCount + 🏆 (tanpa teks nama warna)
+    const statsContainer = document.getElementById('stats-color-breakdown');
+    if (statsContainer) {
+        statsContainer.innerHTML = '';
+        ALL_COLORS.forEach(color => {
+            const count = colorCounts[color];
+            if (count > 0) {
+                const cfg = COLOR_MAP[color];
+                const pill = document.createElement('div');
+                pill.className = 'bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-bold text-xs sm:text-sm shadow-md border border-gray-200 inline-flex';
+                pill.innerHTML = `
+                    <div class="w-5 h-5 rounded flex items-center justify-center shrink-0 border border-black/10" style="background-color: ${cfg.bg}">
+                        <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                    </div>
+                    <span style="color: ${cfg.bg}">x${count}</span>
+                    <span>🏆</span>
+                `;
+                statsContainer.appendChild(pill);
+            }
+        });
+    }
+
+    // 3. Cari warna terbanyak untuk LONGEST STREAK
     let dominantColor = 'Red';
-    let maxCount = -1;
+    let maxCount = 0;
     Object.keys(colorCounts).forEach(c => {
         if (colorCounts[c] > maxCount) {
             maxCount = colorCounts[c];
@@ -199,25 +225,38 @@ export function renderLast20Panel() {
         }
     });
 
-    const streakEl = document.getElementById('roll-streak-display');
-    if (streakEl) streakEl.innerText = `${maxCount} 🔥 (${dominantColor} dice)`;
+    const dominantCfg = COLOR_MAP[dominantColor] || COLOR_MAP['Red'];
 
-    const statsContainer = document.getElementById('stats-color-breakdown');
-    if (statsContainer) {
-        statsContainer.innerHTML = '';
-        ALL_COLORS.forEach(c => {
-            const count = colorCounts[c];
-            const cfg = COLOR_MAP[c];
-            const badge = document.createElement('span');
-            badge.className = `px-2 py-0.5 rounded text-[11px] font-bold ${cfg.text} bg-red-950 border border-red-800 flex items-center gap-1`;
-            badge.innerHTML = `■ x${count}`;
-            statsContainer.appendChild(badge);
-        });
+    // 4. Render LONGEST STREAK: Pill Icon Dadu + xCount + 🔥
+    const longestStreakEl = document.getElementById('stats-longest-streak');
+    if (longestStreakEl) {
+        longestStreakEl.innerHTML = `
+            <div class="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-bold text-xs sm:text-sm shadow-md border border-gray-200 inline-flex">
+                <div class="w-5 h-5 rounded flex items-center justify-center shrink-0 border border-black/10" style="background-color: ${dominantCfg.bg}">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                </div>
+                <span style="color: ${dominantCfg.bg}">x${maxCount}</span>
+                <span>🔥</span>
+            </div>
+        `;
     }
 
-    const longestStreakEl = document.getElementById('stats-longest-streak');
-    if (longestStreakEl) longestStreakEl.innerText = `${dominantColor} x${maxCount} 🔥`;
+    // 5. Update Badge Roll Streak di panggung utama
+    const streakDisplayEl = document.getElementById('roll-streak-display');
+    if (streakDisplayEl) {
+        streakDisplayEl.innerHTML = `
+            
+            <div class="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl text-gray-900 border border-amber-300 shadow-sm">
+                <div class="w-4 h-4 rounded flex items-center justify-center border border-black/10 shrink-0" style="background-color: ${dominantCfg.bg}">
+                    <div class="w-1 h-1 bg-white rounded-full"></div>
+                </div>
+                <span class="font-bold text-xs" style="color: ${dominantCfg.bg}">x${maxCount}</span>
+                <span class="text-xs">🔥</span>
+            </div>
+        `;
+    }
 
+    // 6. Render 'THIS ROLL'
     const currentContainer = document.getElementById('history-row-current');
     if (currentContainer) {
         currentContainer.innerHTML = '<span class="text-xs text-yellow-300 font-bold mr-2">1.</span>';
@@ -231,6 +270,7 @@ export function renderLast20Panel() {
         });
     }
 
+    // 7. Render 'PREVIOUS ROLLS'
     const prevContainer = document.getElementById('history-previous-list');
     if (prevContainer) {
         prevContainer.innerHTML = '';

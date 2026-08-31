@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Online Dice — Virtual Dice Simulator')
+@section('title', 'GO DICE — Virtual Dice Simulator')
 
 @section('content')
 <div id="view-main" class="transition-all duration-300">
@@ -10,7 +10,7 @@
         <div class="absolute -top-6 -left-6 opacity-20 text-6xl">🐉</div>
         <div class="absolute -bottom-6 -right-6 opacity-20 text-6xl">🌴</div>
         <h2 class="font-game text-3xl sm:text-4xl text-yellow-300 drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)] tracking-wide uppercase">
-            ONLINE DICE
+            GO DICE
         </h2>
         <p class="text-xs sm:text-sm font-semibold text-red-100 tracking-wider">VIRTUAL DICE SIMULATOR FOR LIVE STREAMS & GAMES</p>
     </div>
@@ -59,7 +59,7 @@
                     <div>
                         <label class="block text-[10px] uppercase tracking-wider text-red-200 mb-1 font-bold">Dice Type</label>
                         <select class="w-full bg-red-950 border-2 border-red-700 text-yellow-300 text-xs sm:text-sm font-bold rounded-xl px-2 py-2 focus:outline-none focus:border-yellow-400 cursor-pointer text-center">
-                            <option>COLOR D</option>
+                            <option>COLORED</option>
                             <option>CLASSIC 6S</option>
                         </select>
                     </div>
@@ -78,7 +78,7 @@
                 <x-dice-grid />
 
                 <!-- Game ID Banner & Verify Link -->
-                <div class="flex items-center justify-between bg-red-950/90 rounded-xl px-3 py-2 border border-red-800 text-xs mb-3">
+                {{-- <div class="flex items-center justify-between bg-red-950/90 rounded-xl px-3 py-2 border border-red-800 text-xs mb-3">
                     <div class="flex items-center space-x-2">
                         <span class="text-red-300 font-semibold">ID:</span>
                         <span id="current-game-id" class="font-mono font-bold text-yellow-300 tracking-wider">5xAbu7HCMb</span>
@@ -86,13 +86,13 @@
                     <button onclick="switchView('verify')" class="text-sky-300 hover:text-sky-200 underline font-semibold flex items-center gap-1">
                         <i class="fa-solid fa-circle-check text-xs"></i> Verify
                     </button>
-                </div>
+                </div> --}}
 
                 <!-- Warning Banner -->
-                <div class="bg-sky-950/80 border border-sky-500/40 rounded-xl p-2 text-center text-xs text-sky-200 font-medium mb-4 flex items-center justify-center gap-2">
+                {{-- <div class="bg-sky-950/80 border border-sky-500/40 rounded-xl p-2 text-center text-xs text-sky-200 font-medium mb-4 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-circle-info text-sky-400"></i>
                     <span>Always verify the game ID for full transparency.</span>
-                </div>
+                </div> --}}
 
                 <!-- Action Button: GO AGAIN! -->
                 <button id="btn-go-again" onclick="triggerRoll()" class="btn-yellow w-full py-3.5 px-6 rounded-2xl font-game text-2xl sm:text-3xl font-black uppercase tracking-wider shadow-lg flex items-center justify-center gap-3">
