@@ -5,14 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class RigSetting extends Model
+class DiceRoll extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['excluded_colors', 'is_active'];
+    protected $fillable = ['game_id', 'dice_count', 'results', 'client_ip'];
 
     protected $casts = [
-        'excluded_colors' => 'array',
-        'is_active' => 'boolean',
+        'results' => 'array',
     ];
 }

@@ -118,11 +118,18 @@
                     </div>
                 </div>
 
+                
+                <!-- Roll Streak & Active Users -->
                 <!-- Roll Streak & Active Users -->
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
                     <div class="bg-red-950/90 border border-amber-500/40 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-amber-300">
                         <span>Roll Streak:</span>
-                        <span id="roll-streak-display" class="font-bold text-yellow-200">5 🔥 (Red dice)</span>
+                        <span id="roll-streak-display" class="inline-flex items-center">
+                            <div class="inline-flex items-center gap-1.5 bg-red-900/50 px-2.5 py-1 rounded-xl text-red-200 border border-red-700 shadow-sm ml-1">
+                                <span class="font-bold text-xs">0</span>
+                                <span class="text-xs">🔥</span>
+                            </div>
+                        </span>
                     </div>
                     
                     <div class="bg-red-950/90 border border-emerald-500/40 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-emerald-300">

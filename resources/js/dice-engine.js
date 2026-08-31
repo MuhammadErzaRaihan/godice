@@ -12,34 +12,21 @@ export const ALL_COLORS = Object.keys(COLOR_MAP);
 export const state = {
     theme: 'arcade',
     diceCount: 4,
-    currentRoll: [],
-    currentGameId: generateGameId(),
+    currentRoll: ['Red', 'Green', 'Orange', 'Orange'], // Default initial state agar tidak kosong
+    currentGameId: 'Z5Fyk47ZdT',
     counter: 0,
     antiBan: false,
     excludedColors: [],
     history: [],
     usersOnline: 792,
-    streamers: [
-        { name: 'FREXX', handle: '@frexx100', verified: true, url: 'https://tiktok.com/@frexx100/live' },
-        { name: 'MEETS GAMING', handle: '@jsonvy', verified: true, url: 'https://tiktok.com/@jsonvy/live' },
-        { name: 'ODDDUCKS', handle: '@odducks', verified: true, url: 'https://tiktok.com/@odducks/live' },
-        { name: 'LEE0', handle: '@lee0042', verified: true, url: 'https://tiktok.com/@lee0042/live' },
-        { name: 'VEXY', handle: '@vextor1', verified: true, url: 'https://tiktok.com/@vextor1/live' },
-        { name: 'CRONOS.EXE', handle: '@cronos_tab', verified: true, url: 'https://tiktok.com/@cronos_tab/live' },
-        { name: 'KAZ', handle: '@kazuhko_mayuko', verified: true, url: 'https://tiktok.com/@kazuhko_mayuko/live' },
-        { name: 'INTERLUDE', handle: '@interludefive', verified: true, url: 'https://tiktok.com/@interludefive/live' },
-        { name: 'TODDY', handle: '@toddytopia', verified: true, url: 'https://tiktok.com/@toddytopia/live' }
-    ]
+    streamers: []
 };
 
-export function generateGameId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 10; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
+const getHeaders = () => ({
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+});
 
 export function playRollSound() {
     try {
@@ -58,23 +45,47 @@ export function playRollSound() {
     } catch (e) {}
 }
 
-export function getAvailableColors() {
-    const available = ALL_COLORS.filter(c => !state.excludedColors.includes(c));
-    return available.length > 0 ? available : ALL_COLORS;
-}
-
 export function getRandomColor() {
-    const pool = getAvailableColors();
+    const available = ALL_COLORS.filter(c => !state.excludedColors.includes(c));
+    const pool = available.length > 0 ? available : ALL_COLORS;
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export function triggerRoll() {
+/**
+ * Generate dadu lokal secara cepat
+ */
+export function generateLocalRoll() {
+    const localDice = [];
+    for (let i = 0; i < state.diceCount; i++) {
+        localDice.push(getRandomColor());
+    }
+    state.currentRoll = localDice;
+
+    // Masukkan lemparan baru ke urutan pertama (paling atas)
+    state.history.unshift({
+        game_id: state.currentGameId,
+        dice: [...localDice],
+        timestamp: Date.now()
+    });
+    if (state.history.length > 50) state.history.pop();
+
+    renderMainDiceGrid();
+    renderLast20Panel();
+}
+
+/**
+ * Trigger Roll: Animasi Splash -> Render Lokal -> Sync DB API
+ */
+export async function triggerRoll() {
     playRollSound();
     const splash = document.getElementById('splash-overlay');
     const splashDiceGrid = document.getElementById('splash-dice-grid');
-    
+    const btnGoAgain = document.getElementById('btn-go-again');
+
+    if (btnGoAgain) btnGoAgain.disabled = true;
+
+    // Render animasi splash
     if (splash && splashDiceGrid) {
-        // Render dadu putih bergetar sesuai jumlah dadu aktif
         splashDiceGrid.innerHTML = '';
         for (let i = 0; i < state.diceCount; i++) {
             const box = document.createElement('div');
@@ -82,44 +93,60 @@ export function triggerRoll() {
             box.style.animationDelay = `${(i * 0.08).toFixed(2)}s`;
 
             const dot = document.createElement('div');
-            dot.className = 'w-5 h-5 bg-gray-200 rounded-full shadow-inner';
-            
+            dot.className = 'w-3 h-3 bg-gray-200 rounded-full shadow-inner';
             box.appendChild(dot);
             splashDiceGrid.appendChild(box);
         }
-
         splash.classList.remove('hidden');
+    }
 
-        setTimeout(() => {
-            executeRoll();
-            splash.classList.add('hidden');
-        }, 550);
-    } else {
-        executeRoll();
+    // Render dadu secara lokal langsung (Fallback Cepat)
+    generateLocalRoll();
+
+    try {
+        const response = await fetch('/api/dice/roll', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ dice_count: state.diceCount })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                state.currentRoll = data.dice;
+                state.currentGameId = data.game_id;
+
+                renderMainDiceGrid();
+                renderGameId();
+                await fetchRollHistory();
+            }
+        }
+    } catch (error) {
+        console.error('API backend offline/error, menggunakan mode acak lokal:', error);
+    } finally {
+        if (splash) splash.classList.add('hidden');
+        if (btnGoAgain) btnGoAgain.disabled = false;
     }
 }
 
-export function executeRoll() {
-    const newDice = [];
-    for (let i = 0; i < state.diceCount; i++) {
-        newDice.push(getRandomColor());
+/**
+ * Fetch 20 Riwayat Roll Terakhir dari Database
+ */
+export async function fetchRollHistory() {
+    try {
+        const response = await fetch('/api/dice/history');
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (data.success && data.history && data.history.length > 0) {
+            state.history = data.history;
+            renderLast20Panel();
+            renderVerifyView();
+        }
+    } catch (error) {
+        console.error('Gagal memuat riwayat roll:', error);
     }
-
-    state.currentRoll = newDice;
-    state.currentGameId = generateGameId();
-
-    state.history.unshift({
-        id: state.currentGameId,
-        timestamp: Date.now(),
-        dice: [...newDice]
-    });
-
-    if (state.history.length > 50) state.history.pop();
-
-    renderMainDiceGrid();
-    renderGameId();
-    renderLast20Panel();
-    renderVerifyView();
 }
 
 export function renderMainDiceGrid() {
@@ -174,26 +201,44 @@ export function toggleAntiBan(isActive) {
 
 export function updateDiceCount(val) {
     state.diceCount = parseInt(val, 10);
-    executeRoll();
+    triggerRoll();
 }
-
-// resources/js/dice-engine.js -> renderLast20Panel()
 
 export function renderLast20Panel() {
     const rolls = state.history.slice(0, 20);
-    if (rolls.length === 0) return;
 
-    // 1. Hitung total kemunculan tiap warna dalam 20 roll terakhir
+    const streakDisplayEl = document.getElementById('roll-streak-display');
+    const longestStreakEl = document.getElementById('stats-longest-streak');
+
+    // 1. Jika riwayat roll masih kosong (baru pertama masuk web)
+    if (rolls.length === 0) {
+        if (streakDisplayEl) {
+            streakDisplayEl.innerHTML = `
+                <div class="inline-flex items-center gap-1.5 bg-red-900/50 px-2.5 py-1 rounded-xl text-red-200 border border-red-700 shadow-sm ml-1">
+                    <span class="font-bold text-xs">0</span>
+                    <span class="text-xs">🔥</span>
+                </div>
+            `;
+        }
+        if (longestStreakEl) {
+            longestStreakEl.innerHTML = `<span class="text-xs text-gray-400">No active streak</span>`;
+        }
+        return;
+    }
+
+    // 2. Hitung total kemunculan tiap warna (untuk statistik breakdown)
     const colorCounts = {};
     ALL_COLORS.forEach(c => colorCounts[c] = 0);
 
     rolls.forEach(r => {
-        r.dice.forEach(c => {
-            colorCounts[c] = (colorCounts[c] || 0) + 1;
-        });
+        if (Array.isArray(r.dice)) {
+            r.dice.forEach(c => {
+                colorCounts[c] = (colorCounts[c] || 0) + 1;
+            });
+        }
     });
 
-    // 2. Render STATS: Menampilkan pill icon dadu + xCount + 🏆 (tanpa teks nama warna)
+    // Render STATS Breakdown
     const statsContainer = document.getElementById('stats-color-breakdown');
     if (statsContainer) {
         statsContainer.innerHTML = '';
@@ -215,53 +260,87 @@ export function renderLast20Panel() {
         });
     }
 
-    // 3. Cari warna terbanyak untuk LONGEST STREAK
-    let dominantColor = 'Red';
-    let maxCount = 0;
-    Object.keys(colorCounts).forEach(c => {
-        if (colorCounts[c] > maxCount) {
-            maxCount = colorCounts[c];
-            dominantColor = c;
+    // 3. HITUNG ACTIVE STREAK (Dari warna dominan pada roll TERAKHIR)
+    const latestDice = rolls[0].dice;
+    const latestColorCounts = {};
+    latestDice.forEach(c => latestColorCounts[c] = (latestColorCounts[c] || 0) + 1);
+
+    let activeColor = null;
+    let activeColorCountInLatest = 0;
+    Object.keys(latestColorCounts).forEach(c => {
+        if (latestColorCounts[c] > activeColorCountInLatest) {
+            activeColorCountInLatest = latestColorCounts[c];
+            activeColor = c;
         }
     });
 
-    const dominantCfg = COLOR_MAP[dominantColor] || COLOR_MAP['Red'];
+    let activeStreak = 0;
+    if (activeColor) {
+        for (let i = 0; i < rolls.length; i++) {
+            const diceInRoll = rolls[i].dice || [];
+            const countInRoll = diceInRoll.filter(c => c === activeColor).length;
 
-    // 4. Render LONGEST STREAK: Pill Icon Dadu + xCount + 🔥
-    const longestStreakEl = document.getElementById('stats-longest-streak');
-    if (longestStreakEl) {
-        longestStreakEl.innerHTML = `
-            <div class="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-bold text-xs sm:text-sm shadow-md border border-gray-200 inline-flex">
-                <div class="w-5 h-5 rounded flex items-center justify-center shrink-0 border border-black/10" style="background-color: ${dominantCfg.bg}">
-                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
-                </div>
-                <span style="color: ${dominantCfg.bg}">x${maxCount}</span>
-                <span>🔥</span>
-            </div>
-        `;
+            if (countInRoll > 0) {
+                activeStreak += countInRoll;
+            } else {
+                break;
+            }
+        }
     }
 
-    // 5. Update Badge Roll Streak di panggung utama
-    const streakDisplayEl = document.getElementById('roll-streak-display');
+    const activeCfg = activeColor ? COLOR_MAP[activeColor] : null;
+
+    // 4. Update Badge Roll Streak di Panggung Utama
     if (streakDisplayEl) {
-        streakDisplayEl.innerHTML = `
-            
-            <div class="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl text-gray-900 border border-amber-300 shadow-sm">
-                <div class="w-4 h-4 rounded flex items-center justify-center border border-black/10 shrink-0" style="background-color: ${dominantCfg.bg}">
-                    <div class="w-1 h-1 bg-white rounded-full"></div>
+        if (activeStreak > 0 && activeCfg) {
+            streakDisplayEl.innerHTML = `
+                <div class="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl text-gray-900 border border-amber-300 shadow-sm ml-1">
+                    <div class="w-4 h-4 rounded flex items-center justify-center border border-black/10 shrink-0" style="background-color: ${activeCfg.bg}">
+                        <div class="w-1 h-1 bg-white rounded-full"></div>
+                    </div>
+                    <span class="font-bold text-xs" style="color: ${activeCfg.bg}">x${activeStreak}</span>
+                    <span class="text-xs">🔥</span>
                 </div>
-                <span class="font-bold text-xs" style="color: ${dominantCfg.bg}">x${maxCount}</span>
-                <span class="text-xs">🔥</span>
+            `;
+        } else {
+            streakDisplayEl.innerHTML = `
+                <div class="inline-flex items-center gap-1.5 bg-red-900/50 px-2.5 py-1 rounded-xl text-red-200 border border-red-700 shadow-sm ml-1">
+                    <span class="font-bold text-xs">0</span>
+                    <span class="text-xs">🔥</span>
+                </div>
+            `;
+        }
+    }
+
+    // 5. Render LONGEST STREAK pada Panel History
+    if (longestStreakEl) {
+        let topColor = 'Red';
+        let topCount = 0;
+        Object.keys(colorCounts).forEach(c => {
+            if (colorCounts[c] > topCount) {
+                topCount = colorCounts[c];
+                topColor = c;
+            }
+        });
+        const topCfg = COLOR_MAP[topColor] || COLOR_MAP['Red'];
+
+        longestStreakEl.innerHTML = `
+            <div class="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-bold text-xs sm:text-sm shadow-md border border-gray-200 inline-flex">
+                <div class="w-5 h-5 rounded flex items-center justify-center shrink-0 border border-black/10" style="background-color: ${topCfg.bg}">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                </div>
+                <span style="color: ${topCfg.bg}">x${topCount}</span>
+                <span>🔥</span>
             </div>
         `;
     }
 
     // 6. Render 'THIS ROLL'
     const currentContainer = document.getElementById('history-row-current');
-    if (currentContainer) {
+    if (currentContainer && rolls[0] && Array.isArray(rolls[0].dice)) {
         currentContainer.innerHTML = '<span class="text-xs text-yellow-300 font-bold mr-2">1.</span>';
         rolls[0].dice.forEach(color => {
-            const cfg = COLOR_MAP[color];
+            const cfg = COLOR_MAP[color] || COLOR_MAP['Red'];
             const miniBox = document.createElement('div');
             miniBox.className = 'w-6 h-6 rounded-md flex items-center justify-center shrink-0 border border-white/20';
             miniBox.style.backgroundColor = cfg.bg;
@@ -275,6 +354,7 @@ export function renderLast20Panel() {
     if (prevContainer) {
         prevContainer.innerHTML = '';
         rolls.slice(1).forEach((entry, idx) => {
+            if (!Array.isArray(entry.dice)) return;
             const row = document.createElement('div');
             row.className = 'bg-red-950/70 rounded-xl p-2 border border-red-900 flex items-center gap-2 overflow-x-auto';
             
@@ -284,7 +364,7 @@ export function renderLast20Panel() {
             row.appendChild(num);
 
             entry.dice.forEach(color => {
-                const cfg = COLOR_MAP[color];
+                const cfg = COLOR_MAP[color] || COLOR_MAP['Red'];
                 const miniBox = document.createElement('div');
                 miniBox.className = 'w-5 h-5 rounded flex items-center justify-center shrink-0 border border-white/20';
                 miniBox.style.backgroundColor = cfg.bg;
@@ -309,7 +389,7 @@ export function renderVerifyView() {
         recentContainer.innerHTML = '';
         if (delayedRoll) {
             delayedRoll.dice.forEach(color => {
-                const cfg = COLOR_MAP[color];
+                const cfg = COLOR_MAP[color] || COLOR_MAP['Red'];
                 const box = document.createElement('div');
                 box.className = 'w-12 h-12 rounded-xl flex items-center justify-center border-2 border-white/20 shadow';
                 box.style.backgroundColor = cfg.bg;
@@ -341,7 +421,7 @@ export function renderVerifyView() {
             diceWrapper.appendChild(num);
 
             entry.dice.forEach(color => {
-                const cfg = COLOR_MAP[color];
+                const cfg = COLOR_MAP[color] || COLOR_MAP['Red'];
                 const miniBox = document.createElement('div');
                 miniBox.className = 'w-5 h-5 rounded flex items-center justify-center shrink-0 border border-white/20';
                 miniBox.style.backgroundColor = cfg.bg;

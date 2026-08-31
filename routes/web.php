@@ -1,28 +1,33 @@
-<!-- use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DiceController;
-use App\Http\Controllers\AdminController;
-
-// --- PUBLIC ROUTES ---
-Route::get('/', [DiceController::class, 'index'])->name('dice.index');
-Route::post('/roll', [DiceController::class, 'roll'])->name('dice.roll');
-Route::get('/verify/{game_id?}', [DiceController::class, 'verify'])->name('dice.verify');
-
-// --- ADMIN CONTROL ROUTES ---
-Route::prefix('admin-panel')->name('admin.')->group(function () {
-    Route::get('/', [AdminController::class, 'index'])->name('index');
-    Route::post('/toggle-rig', [AdminController::class, 'toggleRig'])->name('toggle-rig');
-    Route::post('/preset-rig', [AdminController::class, 'applyPreset'])->name('preset-rig');
-    Route::post('/streamers', [AdminController::class, 'addStreamer'])->name('streamers.add');
-    Route::delete('/streamers/{id}', [AdminController::class, 'removeStreamer'])->name('streamers.remove');
-}); -->
-
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DiceController;
+use App\Http\Controllers\AdminController;
 
-// --- PUBLIC UI ROUTES ---
-Route::view('/', 'dice.index')->name('dice.index');
-Route::view('/verify', 'dice.verify')->name('dice.verify');
+/*
+|--------------------------------------------------------------------------
+| Web Page View Routes
+|--------------------------------------------------------------------------
+*/
+Route::get('/', [DiceController::class, 'index'])->name('dice.index');
+Route::get('/verify', [DiceController::class, 'verify'])->name('dice.verify');
+Route::get('/admin-panel', [AdminController::class, 'index'])->name('admin.index');
 
-// --- ADMIN UI ROUTE ---
-Route::view('/admin-panel', 'admin.index')->name('admin.index');
+/*
+|--------------------------------------------------------------------------
+| Engine API Endpoints (AJAX Operations)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('api')->group(function () {
+    // Dice Engine & History Endpoints
+    Route::post('/dice/roll', [DiceController::class, 'roll'])->name('api.dice.roll');
+    Route::get('/dice/history', [DiceController::class, 'history'])->name('api.dice.history');
+    Route::get('/dice/verify/{gameId}', [DiceController::class, 'verifyAudit'])->name('api.dice.verifyAudit');
+
+    // Admin Rig & Streamer Management Endpoints
+    Route::get('/admin/rig', [AdminController::class, 'getRigSettings'])->name('api.admin.getRig');
+    Route::post('/admin/rig', [AdminController::class, 'updateRigSettings'])->name('api.admin.updateRig');
+    Route::get('/admin/streamers', [AdminController::class, 'getStreamers'])->name('api.admin.getStreamers');
+    Route::post('/admin/streamers', [AdminController::class, 'storeStreamer'])->name('api.admin.storeStreamer');
+    Route::delete('/admin/streamers/{id}', [AdminController::class, 'destroyStreamer'])->name('api.admin.destroyStreamer');
+});

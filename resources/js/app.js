@@ -1,55 +1,20 @@
 import './bootstrap';
 import { switchTheme } from './theme-manager.js';
 import { 
-    state, ALL_COLORS, COLOR_MAP, triggerRoll, executeRoll, adjustCounter, 
-    toggleAntiBan, updateDiceCount, renderVerifyView, renderGameId, getRandomColor 
+    state, ALL_COLORS, COLOR_MAP, triggerRoll, adjustCounter, 
+    toggleAntiBan, updateDiceCount, renderVerifyView, renderGameId, getRandomColor, fetchRollHistory 
 } from './dice-engine.js';
-import { renderStreamers, renderAdminStreamerList, removeStreamer, addVerifiedStreamer } from './streamer-manager.js';
+import { renderStreamers, renderAdminStreamerList, deleteStreamer, addVerifiedStreamer, loadStreamers } from './streamer-manager.js';
 
-// Bind to Window for inline HTML events
+// Global Event Binding
 window.switchTheme = switchTheme;
 window.triggerRoll = triggerRoll;
 window.adjustCounter = adjustCounter;
 window.toggleAntiBan = toggleAntiBan;
 window.updateDiceCount = updateDiceCount;
 window.refreshVerification = renderVerifyView;
-window.removeStreamer = removeStreamer;
+window.deleteStreamer = deleteStreamer;
 window.addVerifiedStreamer = addVerifiedStreamer;
-
-window.switchView = function(viewName) {
-    const mainView = document.getElementById('view-main');
-    const verifyView = document.getElementById('view-verify');
-    const adminView = document.getElementById('view-admin');
-
-    const navMain = document.getElementById('nav-btn-main');
-    const navVerify = document.getElementById('nav-btn-verify');
-    const navAdmin = document.getElementById('nav-btn-admin');
-
-    if (mainView) mainView.classList.add('hidden');
-    if (verifyView) verifyView.classList.add('hidden');
-    if (adminView) adminView.classList.add('hidden');
-
-    if (navMain) navMain.className = 'px-3 py-1.5 rounded-lg text-red-100 hover:bg-red-800/60 transition';
-    if (navVerify) navVerify.className = 'px-3 py-1.5 rounded-lg text-red-100 hover:bg-red-800/60 transition';
-    if (navAdmin) navAdmin.className = 'px-3 py-1.5 rounded-lg text-yellow-300 hover:bg-red-800/80 transition border border-yellow-500/30 flex items-center gap-1.5';
-
-    if (viewName === 'main' && mainView) {
-        mainView.classList.remove('hidden');
-        document.body.className = 'min-h-screen text-white flex flex-col justify-between';
-        document.body.setAttribute('data-theme', state.theme || 'arcade');
-        if (navMain) navMain.className = 'px-3 py-1.5 rounded-lg bg-yellow-400 text-red-950 font-bold shadow transition';
-    } else if (viewName === 'verify' && verifyView) {
-        verifyView.classList.remove('hidden');
-        document.body.className = 'bg-verify-theme min-h-screen text-white flex flex-col justify-between';
-        if (navVerify) navVerify.className = 'px-3 py-1.5 rounded-lg bg-yellow-400 text-sky-950 font-bold shadow transition';
-        renderVerifyView();
-    } else if (viewName === 'admin' && adminView) {
-        adminView.classList.remove('hidden');
-        document.body.className = 'bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 min-h-screen text-white flex flex-col justify-between';
-        if (navAdmin) navAdmin.className = 'px-3 py-1.5 rounded-lg bg-yellow-400 text-purple-950 font-bold shadow transition flex items-center gap-1.5';
-        renderAdminPage();
-    }
-};
 
 window.toggleLast20Panel = function() {
     const panel = document.getElementById('panel-last-20');
@@ -138,15 +103,11 @@ setInterval(() => {
     if (userEl) userEl.innerText = state.usersOnline;
 }, 4000);
 
-// App Initialization
+// Single Inisialisasi Aplikasi
 document.addEventListener('DOMContentLoaded', () => {
-    switchTheme('arcade');
-    renderStreamers();
-    executeRoll();
-});
+    loadStreamers();
+    fetchRollHistory();
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Jika berada di rute Admin Panel, gunakan tema statis Cyberpunk
     if (window.location.pathname.includes('admin-panel')) {
         document.body.className = 'admin-cyberpunk min-h-screen text-white flex flex-col justify-between';
         document.body.removeAttribute('data-theme');
@@ -156,7 +117,44 @@ document.addEventListener('DOMContentLoaded', () => {
         renderVerifyView();
     } else {
         switchTheme('arcade');
-        renderStreamers();
-        executeRoll();
+        triggerRoll(); // Eksekusi awal melempar dadu dari DB
     }
 });
+
+/**
+ * Simpan aturan pendaran/blokir warna ke Database via API
+ */
+async function syncRigToBackend(excludedColors) {
+    try {
+        await fetch('/api/admin/rig', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({ excluded_colors: excludedColors })
+        });
+    } catch (error) {
+        console.error('Gagal menyimpan aturan rigging:', error);
+    }
+}
+
+window.toggleExcludeColor = function(color) {
+    if (state.excludedColors.includes(color)) {
+        state.excludedColors = state.excludedColors.filter(c => c !== color);
+    } else {
+        state.excludedColors.push(color);
+    }
+    renderAdminToggles();
+    syncRigToBackend(state.excludedColors); // Simpan ke MySQL
+};
+
+window.applyRigPreset = function(preset) {
+    if (preset === 'clean') state.excludedColors = [];
+    else if (preset === 'no-red-blue') state.excludedColors = ['Red', 'Blue'];
+    else if (preset === 'only-yellow') state.excludedColors = ['Red', 'Orange', 'Green', 'Blue', 'Purple'];
+    
+    renderAdminToggles();
+    syncRigToBackend(state.excludedColors); // Simpan ke MySQL
+};

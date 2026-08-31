@@ -1,72 +1,108 @@
+<?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\DiceRoll;
-use App\Models\Streamer;
-use App\Models\RigSetting;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
+use App\Models\DiceRoll;
+use App\Models\RigSetting;
 
 class DiceController extends Controller
 {
-    private array $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
-
     public function index()
     {
-        $streamers = Streamer::all();
-        $recentRolls = DiceRoll::orderBy('rolled_at', 'desc')->take(20)->get();
-
-        return view('dice.index', compact('streamers', 'recentRolls'));
+        return view('dice.index');
     }
 
+    public function verify()
+    {
+        return view('dice.verify');
+    }
+
+    /**
+     * API: Eksekusi Roll Dadu dengan Sistem Rigging Terintegrasi Database
+     */
     public function roll(Request $request)
     {
         $diceCount = (int) $request->input('dice_count', 4);
-        
-        // Cek apakah ada warna yang di-exclude oleh Admin pada sesi ini
-        $rigSetting = RigSetting::where('session_id', 'default_session')->first();
-        $excluded = $rigSetting ? ($rigSetting->excluded_colors ?? []) : [];
-        
-        $availableColors = array_values(array_diff($this->allColors, $excluded));
-        if (empty($availableColors)) {
-            $availableColors = $this->allColors; // Fallback jika semua warna di-exclude
-        }
-
-        // Acak warna dadu berdasarkan warna yang tersedia
-        $rollResults = [];
-        for ($i = 0; $i < $diceCount; $i++) {
-            $rollResults[] = $availableColors[array_rand($availableColors)];
-        }
+        $diceCount = max(1, min(6, $diceCount)); // Batasi 1 - 6 dadu
 
         $gameId = Str::random(10);
-        
-        $diceRoll = DiceRoll::create([
+        $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
+    
+        // Ambil aturan rigging aktif dari database
+        $rig = RigSetting::where('is_active', true)->first();
+        $excludedColors = $rig ? ($rig->excluded_colors ?? []) : [];
+
+        // Eliminasi warna yang di-block oleh Admin
+        $allowedColors = array_values(array_diff($allColors, $excludedColors));
+
+        // Fallback jika semua warna ter-block
+        if (empty($allowedColors)) {
+            $allowedColors = $allColors;
+        }
+
+        // Generate hasil acak berdasarkan warna yang diizinkan
+        $results = [];
+        for ($i = 0; $i < $diceCount; $i++) {
+            $results[] = $allowedColors[array_rand($allowedColors)];
+        }
+
+        // Simpan hasil ke database
+        $roll = DiceRoll::create([
             'game_id' => $gameId,
-            'dice_results' => $rollResults,
             'dice_count' => $diceCount,
-            'session_id' => 'default_session',
-            'rolled_at' => Carbon::now(),
+            'results' => $results,
+            'client_ip' => $request->ip(),
         ]);
 
         return response()->json([
-            'status' => 'success',
-            'game_id' => $gameId,
-            'dice' => $rollResults,
-            'rolled_at' => $diceRoll->rolled_at->toIso8601String()
+            'success' => true,
+            'game_id' => $roll->game_id,
+            'dice' => $roll->results,
+            'timestamp' => $roll->created_at->timestamp * 1000,
         ]);
     }
 
-    public function verify($game_id = null)
+    /**
+     * API: Ambil 20 Riwayat Roll Terakhir dari Database
+     */
+    public function history()
     {
-        $now = Carbon::now();
-        $delayedThreshold = $now->copy()->subSeconds(10); // Simulasi delay 10 detik
+        $history = DiceRoll::latest()->take(20)->get()->map(function ($item) {
+            return [
+                'game_id' => $item->game_id,
+                'dice' => $item->results,
+                'timestamp' => $item->created_at->timestamp * 1000,
+            ];
+        });
 
-        $recentDelayedRoll = DiceRoll::where('rolled_at', '<=', $delayedThreshold)
-            ->orderBy('rolled_at', 'desc')
-            ->first();
+        return response()->json([
+            'success' => true,
+            'history' => $history
+        ]);
+    }
 
-        $last50Rolls = DiceRoll::orderBy('rolled_at', 'desc')->take(50)->get();
+    /**
+     * API: Audit Verifikasi Game ID untuk Halaman Verify
+     */
+    public function verifyAudit($gameId)
+    {
+        $roll = DiceRoll::where('game_id', $gameId)->first();
 
-        return view('dice.verify', compact('game_id', 'recentDelayedRoll', 'last50Rolls'));
+        if (!$roll) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Game ID tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'game_id' => $roll->game_id,
+            'dice' => $roll->results,
+            'timestamp' => $roll->created_at->timestamp * 1000,
+            'created_at_formatted' => $roll->created_at->format('Y-m-d H:i:s T'),
+        ]);
     }
 }
