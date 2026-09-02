@@ -24,10 +24,7 @@
                class="px-3 py-1.5 rounded-lg transition {{ request()->routeIs('dice.verify') ? 'bg-yellow-400 text-sky-950 font-bold shadow' : 'text-red-100 hover:bg-red-800/60' }}">
                 <i class="fa-solid fa-shield-halved mr-1.5"></i> Verify
             </a>
-            <a href="{{ route('admin.index') }}" 
-               class="px-3 py-1.5 rounded-lg transition border border-yellow-500/30 flex items-center gap-1.5 {{ request()->routeIs('admin.index') ? 'bg-yellow-400 text-purple-950 font-bold shadow' : 'text-yellow-300 hover:bg-red-800/80' }}">
-                <i class="fa-solid fa-user-gear"></i> <span class="hidden sm:inline">Admin Panel</span>
-            </a>
+            
         </div>
 
     </div>

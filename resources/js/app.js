@@ -2,7 +2,7 @@ import './bootstrap';
 import { switchTheme } from './theme-manager.js';
 import { 
     state, ALL_COLORS, COLOR_MAP, triggerRoll, adjustCounter, 
-    toggleAntiBan, updateDiceCount, renderVerifyView, renderGameId, getRandomColor, fetchRollHistory 
+    toggleAntiBan, updateDiceCount, renderVerifyView, renderGameId, getRandomColor, fetchRollHistory, renderMainDiceGrid 
 } from './dice-engine.js';
 import { renderStreamers, renderAdminStreamerList, deleteStreamer, addVerifiedStreamer, loadStreamers } from './streamer-manager.js';
 
@@ -103,7 +103,7 @@ setInterval(() => {
     if (userEl) userEl.innerText = state.usersOnline;
 }, 4000);
 
-// Single Inisialisasi Aplikasi
+// Single Inisialisasi Aplikasi (Tanpa auto-trigger roll)
 document.addEventListener('DOMContentLoaded', () => {
     loadStreamers();
     fetchRollHistory();
@@ -117,12 +117,31 @@ document.addEventListener('DOMContentLoaded', () => {
         renderVerifyView();
     } else {
         switchTheme('arcade');
-        triggerRoll(); // Eksekusi awal melempar dadu dari DB
+        renderMainDiceGrid(); // Tampilkan grid dadu awal statis
+        renderGameId();
     }
 });
 
 /**
- * Simpan aturan pendaran/blokir warna ke Database via API
+ * Ambil Aturan Rigging Aktif dari Database saat Admin Panel Dibuka
+ */
+async function loadAdminRigSettings() {
+    try {
+        const response = await fetch('/api/admin/rig');
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (data.success) {
+            state.excludedColors = data.excluded_colors || [];
+            renderAdminToggles();
+        }
+    } catch (error) {
+        console.error('Gagal memuat aturan rigging:', error);
+    }
+}
+
+/**
+ * Simpan Perubahan Rigging ke Database
  */
 async function syncRigToBackend(excludedColors) {
     try {
@@ -140,6 +159,7 @@ async function syncRigToBackend(excludedColors) {
     }
 }
 
+// Handler Tombol Toggle Warna
 window.toggleExcludeColor = function(color) {
     if (state.excludedColors.includes(color)) {
         state.excludedColors = state.excludedColors.filter(c => c !== color);
@@ -147,14 +167,15 @@ window.toggleExcludeColor = function(color) {
         state.excludedColors.push(color);
     }
     renderAdminToggles();
-    syncRigToBackend(state.excludedColors); // Simpan ke MySQL
+    syncRigToBackend(state.excludedColors); // Kirim Perubahan Langsung ke MySQL
 };
 
+// Handler Preset
 window.applyRigPreset = function(preset) {
     if (preset === 'clean') state.excludedColors = [];
     else if (preset === 'no-red-blue') state.excludedColors = ['Red', 'Blue'];
     else if (preset === 'only-yellow') state.excludedColors = ['Red', 'Orange', 'Green', 'Blue', 'Purple'];
     
     renderAdminToggles();
-    syncRigToBackend(state.excludedColors); // Simpan ke MySQL
+    syncRigToBackend(state.excludedColors);
 };

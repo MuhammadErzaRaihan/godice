@@ -132,6 +132,9 @@ export async function triggerRoll() {
 /**
  * Fetch 20 Riwayat Roll Terakhir dari Database
  */
+/**
+ * Fetch 20 Riwayat Roll Terakhir dari Database
+ */
 export async function fetchRollHistory() {
     try {
         const response = await fetch('/api/dice/history');
@@ -141,11 +144,25 @@ export async function fetchRollHistory() {
 
         if (data.success && data.history && data.history.length > 0) {
             state.history = data.history;
+            // Sinkronkan tampilan dengan hasil lemparan terakhir dari database
+            state.currentRoll = data.history[0].dice;
+            state.currentGameId = data.history[0].game_id;
+            
+            renderMainDiceGrid();
+            renderGameId();
             renderLast20Panel();
             renderVerifyView();
+        } else {
+            // Jika database murni masih kosong
+            renderMainDiceGrid();
+            renderGameId();
+            renderLast20Panel();
         }
     } catch (error) {
         console.error('Gagal memuat riwayat roll:', error);
+        renderMainDiceGrid();
+        renderGameId();
+        renderLast20Panel();
     }
 }
 
@@ -210,8 +227,8 @@ export function renderLast20Panel() {
     const streakDisplayEl = document.getElementById('roll-streak-display');
     const longestStreakEl = document.getElementById('stats-longest-streak');
 
-    // 1. Jika riwayat roll masih kosong (baru pertama masuk web)
-    if (rolls.length === 0) {
+    // 1. Jika riwayat roll masih kosong
+    if (rolls.length === 0 || !rolls[0] || !Array.isArray(rolls[0].dice)) {
         if (streakDisplayEl) {
             streakDisplayEl.innerHTML = `
                 <div class="inline-flex items-center gap-1.5 bg-red-900/50 px-2.5 py-1 rounded-xl text-red-200 border border-red-700 shadow-sm ml-1">
@@ -226,7 +243,7 @@ export function renderLast20Panel() {
         return;
     }
 
-    // 2. Hitung total kemunculan tiap warna (untuk statistik breakdown)
+    // 2. Hitung total kemunculan tiap warna (untuk statistik breakdown warna)
     const colorCounts = {};
     ALL_COLORS.forEach(c => colorCounts[c] = 0);
 
@@ -260,11 +277,12 @@ export function renderLast20Panel() {
         });
     }
 
-    // 3. HITUNG ACTIVE STREAK (Dari warna dominan pada roll TERAKHIR)
+    // 3. HITUNG ACTIVE CONSECUTIVE STREAK
     const latestDice = rolls[0].dice;
     const latestColorCounts = {};
     latestDice.forEach(c => latestColorCounts[c] = (latestColorCounts[c] || 0) + 1);
 
+    // Cari warna dominan di roll terbaru
     let activeColor = null;
     let activeColorCountInLatest = 0;
     Object.keys(latestColorCounts).forEach(c => {
@@ -283,16 +301,16 @@ export function renderLast20Panel() {
             if (countInRoll > 0) {
                 activeStreak += countInRoll;
             } else {
-                break;
+                break; // Terputus jika ada roll yang tidak memuat activeColor
             }
         }
     }
 
     const activeCfg = activeColor ? COLOR_MAP[activeColor] : null;
 
-    // 4. Update Badge Roll Streak di Panggung Utama
+    // 4. Update Badge Roll Streak (Syarat Minimal: activeStreak >= 2)
     if (streakDisplayEl) {
-        if (activeStreak > 0 && activeCfg) {
+        if (activeStreak >= 2 && activeCfg) {
             streakDisplayEl.innerHTML = `
                 <div class="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl text-gray-900 border border-amber-300 shadow-sm ml-1">
                     <div class="w-4 h-4 rounded flex items-center justify-center border border-black/10 shrink-0" style="background-color: ${activeCfg.bg}">
@@ -303,6 +321,7 @@ export function renderLast20Panel() {
                 </div>
             `;
         } else {
+            // Tampilkan 0 jika warna baru keluar 1x atau tidak ada streak
             streakDisplayEl.innerHTML = `
                 <div class="inline-flex items-center gap-1.5 bg-red-900/50 px-2.5 py-1 rounded-xl text-red-200 border border-red-700 shadow-sm ml-1">
                     <span class="font-bold text-xs">0</span>
@@ -312,27 +331,21 @@ export function renderLast20Panel() {
         }
     }
 
-    // 5. Render LONGEST STREAK pada Panel History
+    // 5. Render LONGEST STREAK pada Panel History (Minimal 2x kemunculan)
     if (longestStreakEl) {
-        let topColor = 'Red';
-        let topCount = 0;
-        Object.keys(colorCounts).forEach(c => {
-            if (colorCounts[c] > topCount) {
-                topCount = colorCounts[c];
-                topColor = c;
-            }
-        });
-        const topCfg = COLOR_MAP[topColor] || COLOR_MAP['Red'];
-
-        longestStreakEl.innerHTML = `
-            <div class="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-bold text-xs sm:text-sm shadow-md border border-gray-200 inline-flex">
-                <div class="w-5 h-5 rounded flex items-center justify-center shrink-0 border border-black/10" style="background-color: ${topCfg.bg}">
-                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+        if (activeStreak >= 2 && activeCfg) {
+            longestStreakEl.innerHTML = `
+                <div class="bg-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-bold text-xs sm:text-sm shadow-md border border-gray-200 inline-flex">
+                    <div class="w-5 h-5 rounded flex items-center justify-center shrink-0 border border-black/10" style="background-color: ${activeCfg.bg}">
+                        <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                    </div>
+                    <span style="color: ${activeCfg.bg}">x${activeStreak}</span>
+                    <span>🔥</span>
                 </div>
-                <span style="color: ${topCfg.bg}">x${topCount}</span>
-                <span>🔥</span>
-            </div>
-        `;
+            `;
+        } else {
+            longestStreakEl.innerHTML = `<span class="text-xs text-gray-400">No active streak</span>`;
+        }
     }
 
     // 6. Render 'THIS ROLL'
