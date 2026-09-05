@@ -25,30 +25,33 @@ class DiceController extends Controller
     public function roll(Request $request)
     {
         $diceCount = (int) $request->input('dice_count', 4);
-        $diceCount = max(1, min(6, $diceCount)); // Batasi 1 - 6 dadu
+        $diceCount = max(1, min(6, $diceCount));
 
         $gameId = Str::random(10);
         $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
-    
-        // Ambil aturan rigging aktif dari database
-        $rig = RigSetting::where('is_active', true)->first();
-        $excludedColors = $rig ? ($rig->excluded_colors ?? []) : [];
 
-        // Eliminasi warna yang di-block oleh Admin
+        // Ambil aturan rigging aktif dari DB
+        $rig = RigSetting::where('is_active', true)->first();
+        $excludedColors = $rig?->excluded_colors ?? [];
+
+        if (is_string($excludedColors)) {
+            $excludedColors = json_decode($excludedColors, true) ?? [];
+        }
+
+        // Saring warna yang diblokir
         $allowedColors = array_values(array_diff($allColors, $excludedColors));
 
-        // Fallback jika semua warna ter-block
+        // Fallback jika seluruh warna terblokir
         if (empty($allowedColors)) {
             $allowedColors = $allColors;
         }
 
-        // Generate hasil acak berdasarkan warna yang diizinkan
+        // Acak dadu dari warna yang tersisa
         $results = [];
         for ($i = 0; $i < $diceCount; $i++) {
             $results[] = $allowedColors[array_rand($allowedColors)];
         }
 
-        // Simpan hasil ke database
         $roll = DiceRoll::create([
             'game_id' => $gameId,
             'dice_count' => $diceCount,
@@ -64,9 +67,6 @@ class DiceController extends Controller
         ]);
     }
 
-    /**
-     * API: Ambil 20 Riwayat Roll Terakhir dari Database
-     */
     public function history()
     {
         $history = DiceRoll::latest()->take(20)->get()->map(function ($item) {
@@ -83,9 +83,6 @@ class DiceController extends Controller
         ]);
     }
 
-    /**
-     * API: Audit Verifikasi Game ID untuk Halaman Verify
-     */
     public function verifyAudit($gameId)
     {
         $roll = DiceRoll::where('game_id', $gameId)->first();

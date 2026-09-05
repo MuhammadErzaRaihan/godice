@@ -13,15 +13,15 @@ class AdminController extends Controller
         return view('admin.index');
     }
 
-    /**
-     * API: Ambil Pengaturan Rigging Aktif
-     */
     public function getRigSettings()
     {
-        $rig = RigSetting::firstOrCreate(
-            ['id' => 1],
-            ['excluded_colors' => [], 'is_active' => true]
-        );
+        $rig = RigSetting::firstOrNew(['id' => 1]);
+        
+        if (!$rig->exists) {
+            $rig->excluded_colors = [];
+            $rig->is_active = true;
+            $rig->save();
+        }
 
         return response()->json([
             'success' => true,
@@ -29,21 +29,17 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * API: Update Aturan Blokir Warna (Rigging Control)
-     */
     public function updateRigSettings(Request $request)
     {
         $request->validate([
-            'excluded_colors' => 'array',
+            'excluded_colors' => 'nullable|array',
             'excluded_colors.*' => 'string|in:Red,Orange,Yellow,Green,Blue,Purple',
         ]);
 
-        $rig = RigSetting::firstOrCreate(['id' => 1]);
-        $rig->update([
-            'excluded_colors' => $request->input('excluded_colors', []),
-            'is_active' => true,
-        ]);
+        $rig = RigSetting::firstOrNew(['id' => 1]);
+        $rig->excluded_colors = $request->input('excluded_colors', []);
+        $rig->is_active = true;
+        $rig->save();
 
         return response()->json([
             'success' => true,
@@ -52,9 +48,6 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * API: Ambil Daftar Streamer Aktif
-     */
     public function getStreamers()
     {
         $streamers = Streamer::latest()->get();
@@ -65,9 +58,6 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * API: Tambah Streamer Terverifikasi Baru
-     */
     public function storeStreamer(Request $request)
     {
         $request->validate([
@@ -90,9 +80,6 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * API: Hapus Streamer
-     */
     public function destroyStreamer($id)
     {
         $streamer = Streamer::find($id);

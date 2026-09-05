@@ -94,12 +94,7 @@
                     <span>Always verify the game ID for full transparency.</span>
                 </div> --}}
 
-                <!-- Action Button: GO AGAIN! -->
-                <button id="btn-go-again" onclick="triggerRoll()" class="btn-yellow w-full py-3.5 px-6 rounded-2xl font-game text-2xl sm:text-3xl font-black uppercase tracking-wider shadow-lg flex items-center justify-center gap-3">
-                    <span>GO AGAIN !</span>
-                    <i class="fa-solid fa-rotate-right text-xl"></i>
-                </button>
-
+            
                 <!-- Manual Counter Controls -->
                 <div class="mt-4 bg-red-950/70 border border-red-800 rounded-2xl p-2.5 flex items-center justify-between">
                     <div class="flex space-x-1">

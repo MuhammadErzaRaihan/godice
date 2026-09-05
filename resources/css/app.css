@@ -225,18 +225,35 @@ body[data-theme="minimal"] .text-yellow-300 {
 }
 
 /* BUTTON 3D DEFAULT */
+/* BUTTON GO AGAIN MATCHING GAME UI STYLE */
+/* BUTTON GO AGAIN WITH MINIMALIST SANS-SERIF FONT (INTER) ACROSS ALL THEMES */
 .btn-yellow {
-    background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
-    color: #713f12;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
-    border-bottom: 5px solid #ca8a04;
-    transition: all 0.15s ease;
+    background-color: #ffd000 !important;
+    background-image: linear-gradient(180deg, #ffe000 0%, #ffc000 100%) !important;
+    color: #ffffff !important;
+    font-family: 'Inter', sans-serif !important; /* Mengunci font Inter (Minimalist) untuk semua tema */
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    border: 4px solid #ffffff !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35) !important;
+    text-shadow: 
+        2px 2px 0px #d97706,
+        -1px -1px 0px #d97706,
+        1px -1px 0px #d97706,
+        -1px 1px 0px #d97706,
+        0px 3px 0px #b45309 !important;
+    transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+}
+
+.btn-yellow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4) !important;
 }
 
 .btn-yellow:active {
-    transform: translateY(3px);
-    border-bottom-width: 2px;
-    box-shadow: none;
+    transform: translateY(2px) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* ANTI-BAN HOVER PER-DIE EFFECT */
@@ -288,20 +305,60 @@ body[data-theme="minimal"] .text-yellow-300 {
     animation: popText 0.4s ease-in-out infinite;
 }
 
-/* CYBERPUNK PURPLE ADMIN PANEL STYLING */
+/* OVERRIDE CYBERPUNK ADMIN THEME */
 body.admin-cyberpunk {
     background-color: #03000a !important;
     background-image: 
-        radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 70%),
-        linear-gradient(rgba(168, 85, 247, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(168, 85, 247, 0.05) 1px, transparent 1px) !important;
+        radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.2) 0%, transparent 70%),
+        linear-gradient(rgba(168, 85, 247, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168, 85, 247, 0.08) 1px, transparent 1px) !important;
     background-size: 100% 100%, 24px 24px, 24px 24px !important;
 }
 
-/* Neon Glow Effect Cards */
-.cyberpunk-card {
-    background: rgba(15, 7, 28, 0.9) !important;
+body.admin-cyberpunk header {
+    background-color: rgba(10, 2, 22, 0.95) !important;
+    border-bottom-color: rgba(168, 85, 247, 0.4) !important;
+}
+
+body.admin-cyberpunk footer {
+    background-color: #05010d !important;
+    border-top-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+/* Override Kartu & Box Merah di Halaman Admin */
+body.admin-cyberpunk .card-red,
+body.admin-cyberpunk .cyberpunk-card {
+    background: rgba(15, 7, 28, 0.92) !important;
     border: 2px solid #a855f7 !important;
     box-shadow: 0 0 20px rgba(168, 85, 247, 0.25), inset 0 0 10px rgba(168, 85, 247, 0.1) !important;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px) !important;
+    border-radius: 24px !important;
+}
+
+body.admin-cyberpunk .card-inner,
+body.admin-cyberpunk input,
+body.admin-cyberpunk select,
+body.admin-cyberpunk .bg-red-950,
+body.admin-cyberpunk .bg-red-950\/80,
+body.admin-cyberpunk .bg-red-950\/90,
+body.admin-cyberpunk .bg-red-950\/70,
+body.admin-cyberpunk .bg-red-950\/60,
+body.admin-cyberpunk .bg-red-900,
+body.admin-cyberpunk .bg-red-900\/40,
+body.admin-cyberpunk .bg-red-900\/80,
+body.admin-cyberpunk .bg-red-900\/90 {
+    background-color: rgba(24, 9, 43, 0.85) !important;
+    border-color: rgba(168, 85, 247, 0.35) !important;
+}
+
+body.admin-cyberpunk .border-red-800,
+body.admin-cyberpunk .border-red-900,
+body.admin-cyberpunk .border-red-700 {
+    border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+body.admin-cyberpunk .text-red-100,
+body.admin-cyberpunk .text-red-200,
+body.admin-cyberpunk .text-red-300 {
+    color: #e9d5ff !important;
 }

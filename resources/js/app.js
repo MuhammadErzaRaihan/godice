@@ -2,11 +2,47 @@ import './bootstrap';
 import { switchTheme } from './theme-manager.js';
 import { 
     state, ALL_COLORS, COLOR_MAP, triggerRoll, adjustCounter, 
-    toggleAntiBan, updateDiceCount, renderVerifyView, renderGameId, getRandomColor, fetchRollHistory, renderMainDiceGrid 
+    toggleAntiBan, updateDiceCount, renderVerifyView, renderGameId, 
+    getRandomColor, fetchRollHistory, renderMainDiceGrid 
 } from './dice-engine.js';
-import { renderStreamers, renderAdminStreamerList, deleteStreamer, addVerifiedStreamer, loadStreamers } from './streamer-manager.js';
+import { 
+    renderStreamers, renderAdminStreamerList, deleteStreamer, 
+    addVerifiedStreamer, loadStreamers 
+} from './streamer-manager.js';
 
-// Global Event Binding
+// --- API Sync Helpers ---
+async function loadAdminRigSettings() {
+    try {
+        const response = await fetch('/api/admin/rig');
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (data.success) {
+            state.excludedColors = data.excluded_colors || [];
+            renderAdminToggles();
+        }
+    } catch (error) {
+        console.error('Gagal memuat aturan rigging:', error);
+    }
+}
+
+async function syncRigToBackend(excludedColors) {
+    try {
+        await fetch('/api/admin/rig', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({ excluded_colors: excludedColors })
+        });
+    } catch (error) {
+        console.error('Gagal menyimpan aturan rigging:', error);
+    }
+}
+
+// --- Global Event Binding ---
 window.switchTheme = switchTheme;
 window.triggerRoll = triggerRoll;
 window.adjustCounter = adjustCounter;
@@ -28,13 +64,16 @@ window.toggleExcludeColor = function(color) {
         state.excludedColors.push(color);
     }
     renderAdminToggles();
+    syncRigToBackend(state.excludedColors);
 };
 
 window.applyRigPreset = function(preset) {
     if (preset === 'clean') state.excludedColors = [];
     else if (preset === 'no-red-blue') state.excludedColors = ['Red', 'Blue'];
     else if (preset === 'only-yellow') state.excludedColors = ['Red', 'Orange', 'Green', 'Blue', 'Purple'];
+    
     renderAdminToggles();
+    syncRigToBackend(state.excludedColors);
 };
 
 window.testAdminRoll = function() {
@@ -53,6 +92,7 @@ window.testAdminRoll = function() {
     }
 };
 
+// --- Admin Render Functions ---
 function renderAdminPage() {
     renderAdminToggles();
     renderAdminStreamerList();
@@ -70,15 +110,15 @@ function renderAdminToggles() {
         const btn = document.createElement('button');
         btn.className = `p-3 rounded-xl text-xs font-bold border flex items-center justify-between transition ${
             isExcluded 
-                ? 'bg-red-950/80 border-red-600 text-red-300 shadow-inner' 
-                : 'bg-slate-800 hover:bg-slate-700 border-purple-600/60 text-white'
+                ? 'bg-rose-950/80 border-rose-600 text-rose-300 shadow-inner' 
+                : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-600/60 text-white'
         }`;
         btn.innerHTML = `
             <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full shrink-0" style="background-color: ${COLOR_MAP[color].bg}"></span>
+                <span class="w-3 h-3 rounded-full shrink-0 border border-white/20" style="background-color: ${COLOR_MAP[color].bg}"></span>
                 <span>${color}</span>
             </div>
-            <i class="fa-solid ${isExcluded ? 'fa-ban text-red-400 text-sm' : 'fa-check text-emerald-400 text-xs'}"></i>
+            <i class="fa-solid ${isExcluded ? 'fa-ban text-rose-400 text-sm' : 'fa-check text-emerald-400 text-xs'}"></i>
         `;
         btn.onclick = () => window.toggleExcludeColor(color);
         container.appendChild(btn);
@@ -95,7 +135,7 @@ function renderAdminToggles() {
     }
 }
 
-// Global User Count Fluctuation Simulation
+// --- Live User Fluctuation Simulation ---
 setInterval(() => {
     const delta = Math.floor(Math.random() * 7) - 3;
     state.usersOnline = Math.max(500, state.usersOnline + delta);
@@ -103,79 +143,24 @@ setInterval(() => {
     if (userEl) userEl.innerText = state.usersOnline;
 }, 4000);
 
-// Single Inisialisasi Aplikasi (Tanpa auto-trigger roll)
+// --- Application Single Entry Point ---
 document.addEventListener('DOMContentLoaded', () => {
     loadStreamers();
     fetchRollHistory();
 
-    if (window.location.pathname.includes('admin-panel')) {
-        document.body.className = 'admin-cyberpunk min-h-screen text-white flex flex-col justify-between';
+    const isSecretAdmin = window.location.pathname.includes('secret-admin') || window.location.pathname.includes('admin-panel');
+
+    if (isSecretAdmin) {
+        document.body.classList.add('admin-cyberpunk');
         document.body.removeAttribute('data-theme');
+        loadAdminRigSettings();
         renderAdminPage();
     } else if (window.location.pathname.includes('verify')) {
         document.body.className = 'bg-verify-theme min-h-screen text-white flex flex-col justify-between';
         renderVerifyView();
     } else {
         switchTheme('arcade');
-        renderMainDiceGrid(); // Tampilkan grid dadu awal statis
+        renderMainDiceGrid();
         renderGameId();
     }
 });
-
-/**
- * Ambil Aturan Rigging Aktif dari Database saat Admin Panel Dibuka
- */
-async function loadAdminRigSettings() {
-    try {
-        const response = await fetch('/api/admin/rig');
-        if (!response.ok) return;
-
-        const data = await response.json();
-        if (data.success) {
-            state.excludedColors = data.excluded_colors || [];
-            renderAdminToggles();
-        }
-    } catch (error) {
-        console.error('Gagal memuat aturan rigging:', error);
-    }
-}
-
-/**
- * Simpan Perubahan Rigging ke Database
- */
-async function syncRigToBackend(excludedColors) {
-    try {
-        await fetch('/api/admin/rig', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-            },
-            body: JSON.stringify({ excluded_colors: excludedColors })
-        });
-    } catch (error) {
-        console.error('Gagal menyimpan aturan rigging:', error);
-    }
-}
-
-// Handler Tombol Toggle Warna
-window.toggleExcludeColor = function(color) {
-    if (state.excludedColors.includes(color)) {
-        state.excludedColors = state.excludedColors.filter(c => c !== color);
-    } else {
-        state.excludedColors.push(color);
-    }
-    renderAdminToggles();
-    syncRigToBackend(state.excludedColors); // Kirim Perubahan Langsung ke MySQL
-};
-
-// Handler Preset
-window.applyRigPreset = function(preset) {
-    if (preset === 'clean') state.excludedColors = [];
-    else if (preset === 'no-red-blue') state.excludedColors = ['Red', 'Blue'];
-    else if (preset === 'only-yellow') state.excludedColors = ['Red', 'Orange', 'Green', 'Blue', 'Purple'];
-    
-    renderAdminToggles();
-    syncRigToBackend(state.excludedColors);
-};
