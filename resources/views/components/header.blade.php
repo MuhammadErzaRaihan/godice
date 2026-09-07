@@ -8,7 +8,7 @@
             </div>
             <div>
                 <h1 class="font-game text-xl sm:text-2xl font-black tracking-wide text-yellow-300 drop-shadow-md leading-none">
-                    ONLINE DICE
+                    GO DICE
                 </h1>
                 <p class="text-[10px] tracking-widest text-red-200 uppercase font-semibold">Virtual Dice Simulator</p>
             </div>

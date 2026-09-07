@@ -26,6 +26,6 @@
     </div>
 
     <div class="text-[11px] text-red-400 font-medium">
-        © 2026 ONLINE-DICE.COM — All rights reserved.
+        © 2026 GODICE - All rights reserved.
     </div>
 </footer>

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\DiceRoll;
 use App\Models\RigSetting;
+use App\Models\RiggedRoll;
 
 class DiceController extends Controller
 {
@@ -22,39 +23,47 @@ class DiceController extends Controller
     /**
      * API: Eksekusi Roll Dadu dengan Sistem Rigging Terintegrasi Database
      */
+
     public function roll(Request $request)
     {
         $diceCount = (int) $request->input('dice_count', 4);
         $diceCount = max(1, min(6, $diceCount));
 
-        $gameId = Str::random(10);
+        $gameId = $request->input('game_id') ?: Str::random(10);
         $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
 
-        // Ambil aturan rigging aktif dari DB
-        $rig = RigSetting::where('is_active', true)->first();
-        $excludedColors = $rig?->excluded_colors ?? [];
+        // 1. Cek apakah ada aturan blokir warna khusus untuk Game ID ini
+        $preset = RiggedRoll::where('game_id', $gameId)->where('is_used', false)->first();
+
+        if ($preset) {
+            $excludedColors = $preset->excluded_colors ?? [];
+            $preset->update(['is_used' => true]); // Tandai preset ID ini sudah terpakai
+        } else {
+            // 2. Fallback ke Aturan Blokir Warna Global
+            $rig = RigSetting::where('is_active', true)->first();
+            $excludedColors = $rig?->excluded_colors ?? [];
+        }
 
         if (is_string($excludedColors)) {
             $excludedColors = json_decode($excludedColors, true) ?? [];
         }
 
-        // Saring warna yang diblokir
+        // Saring warna yang diizinkan (selain yang diblokir)
         $allowedColors = array_values(array_diff($allColors, $excludedColors));
-
-        // Fallback jika seluruh warna terblokir
         if (empty($allowedColors)) {
             $allowedColors = $allColors;
         }
 
-        // Acak dadu dari warna yang tersisa
+        // Acak dadu dari sisa warna yang diizinkan
         $results = [];
         for ($i = 0; $i < $diceCount; $i++) {
             $results[] = $allowedColors[array_rand($allowedColors)];
         }
 
+        // Simpan ke riwayat database
         $roll = DiceRoll::create([
             'game_id' => $gameId,
-            'dice_count' => $diceCount,
+            'dice_count' => count($results),
             'results' => $results,
             'client_ip' => $request->ip(),
         ]);
@@ -62,6 +71,7 @@ class DiceController extends Controller
         return response()->json([
             'success' => true,
             'game_id' => $roll->game_id,
+            'next_game_id' => Str::random(10),
             'dice' => $roll->results,
             'timestamp' => $roll->created_at->timestamp * 1000,
         ]);

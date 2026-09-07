@@ -18,13 +18,11 @@
         </p>
         
         <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-            <!-- Active Session Badge -->
             <div class="inline-flex items-center gap-2 bg-slate-950/90 border border-purple-500/60 px-4 py-2 rounded-xl text-xs text-purple-200 font-mono shadow-[0_0_12px_rgba(168,85,247,0.15)]">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></span>
                 <span>SESSION ID: <strong id="admin-session-id" class="text-cyan-300 font-bold tracking-wider">5xAbu7HCMb</strong></span>
             </div>
 
-            <!-- Static Cyberpunk Theme Badge -->
             <div class="inline-flex items-center gap-2 bg-purple-950/80 border border-fuchsia-500/60 px-4 py-2 rounded-xl text-xs font-mono font-bold text-fuchsia-300 uppercase shadow-[0_0_12px_rgba(217,70,239,0.2)]">
                 <i class="fa-solid fa-microchip text-cyan-400"></i>
                 <span>SYSTEM: CYBERPUNK PURPLE</span>
@@ -38,22 +36,57 @@
         <!-- Left Column: Color Rigging Control Panel -->
         <div class="lg:col-span-7 space-y-6 sm:space-y-8">
             
-            <!-- Color Exclusion Card -->
+            <!-- 1. Targeted Game ID Color Rig (Tampilan Disamakan) -->
             <div class="cyberpunk-card rounded-3xl p-6 sm:p-7 space-y-5">
                 <div class="flex items-center justify-between border-b border-purple-800/60 pb-4">
                     <h3 class="font-game text-xl text-yellow-300 font-bold flex items-center gap-2.5 tracking-wide">
-                        <i class="fa-solid fa-sliders text-fuchsia-400"></i> COLOR EXCLUSION RIG
+                        <i class="fa-solid fa-bullseye text-fuchsia-400"></i> TARGETED GAME ID COLOR RIG
                     </h3>
-                    <span id="rig-status-badge" class="text-[10px] uppercase font-mono font-bold px-3 py-1 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                    <span id="targeted-rig-status-badge" class="text-[10px] uppercase font-mono font-bold px-3 py-1 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/80">
+                        CLEAN ROLL
+                    </span>
+                </div>
+
+                <p class="text-xs text-slate-300/90 leading-relaxed font-sans">
+                    Masukkan Target Game ID streamer, lalu tekan tombol warna yang ingin <strong>DIBLOKIR</strong> khusus untuk ID tersebut.
+                </p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[11px] font-mono font-bold text-purple-300 uppercase tracking-wider mb-1.5">Target Game ID</label>
+                        <input type="text" id="rig-target-game-id" placeholder="Contoh: X03Wh6CSLZ" class="w-full bg-slate-950/90 border border-purple-700/80 text-sm text-cyan-300 font-mono font-bold p-3 rounded-xl focus:outline-none focus:border-fuchsia-400 transition placeholder:text-slate-600">
+                    </div>
+
+                    <!-- Toggle Matrix Buttons untuk Target ID (Disamakan dengan Global) -->
+                    <div>
+                        <label class="block text-[11px] font-mono font-bold text-purple-300 uppercase tracking-wider mb-2">Block Color Matrix:</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="targeted-color-toggles">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <button onclick="saveTargetedColorRig()" class="btn-yellow w-full py-3 text-xs font-bold uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+                        <i class="fa-solid fa-lock text-sm"></i> Simpan Blokir Warna Game ID
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Global Color Exclusion Rig -->
+            <div class="cyberpunk-card rounded-3xl p-6 sm:p-7 space-y-5">
+                <div class="flex items-center justify-between border-b border-purple-800/60 pb-4">
+                    <h3 class="font-game text-xl text-yellow-300 font-bold flex items-center gap-2.5 tracking-wide">
+                        <i class="fa-solid fa-sliders text-fuchsia-400"></i> GLOBAL COLOR EXCLUSION RIG
+                    </h3>
+                    <span id="rig-status-badge" class="text-[10px] uppercase font-mono font-bold px-3 py-1 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/80">
                         FAIR / CLEAN ROLL
                     </span>
                 </div>
 
                 <p class="text-xs text-slate-300/90 leading-relaxed font-sans">
-                    Excluded colors are strictly blocked from appearing in subsequent rolls during live streams.
+                    Excluded colors are strictly blocked from appearing in subsequent rolls during live streams[cite: 13, 20].
                 </p>
 
-                <!-- Toggle Matrix Buttons -->
+                <!-- Toggle Matrix Buttons Global -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="admin-color-toggles">
                     <!-- Populated dynamically via JS -->
                 </div>
@@ -96,8 +129,6 @@
 
         <!-- Right Column: Streamer Directory Management -->
         <div class="lg:col-span-5 space-y-6 sm:space-y-8">
-            
-            <!-- Add Verified Streamer Form -->
             <div class="cyberpunk-card rounded-3xl p-6 sm:p-7 space-y-5">
                 <h3 class="font-game text-xl text-yellow-300 font-bold border-b border-purple-800/60 pb-3 flex items-center gap-2.5 tracking-wide">
                     <i class="fa-solid fa-user-plus text-fuchsia-400"></i> ADD VERIFIED STREAMER
@@ -123,7 +154,6 @@
                 </div>
             </div>
 
-            <!-- Active Directory List -->
             <div class="cyberpunk-card rounded-3xl p-6 sm:p-7 space-y-4">
                 <h3 class="font-game text-xl text-yellow-300 font-bold border-b border-purple-800/60 pb-3 flex items-center justify-between tracking-wide">
                     <span>ACTIVE DIRECTORY</span>
@@ -134,7 +164,6 @@
                     <!-- Populated dynamically via JS -->
                 </div>
             </div>
-
         </div>
 
     </div>

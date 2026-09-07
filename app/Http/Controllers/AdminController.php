@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\RigSetting;
 use App\Models\Streamer;
+use App\Models\RiggedRoll;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -93,6 +95,32 @@ class AdminController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Streamer berhasil dihapus'
+        ]);
+    }
+
+    /**
+     * API: Simpan Preset Roll Berdasarkan Game ID
+     */
+    public function storePresetRoll(Request $request)
+    {
+        $request->validate([
+            'game_id' => 'required|string|max:10',
+            'excluded_colors' => 'nullable|array',
+            'excluded_colors.*' => 'string|in:Red,Orange,Yellow,Green,Blue,Purple',
+        ]);
+
+        $preset = RiggedRoll::updateOrCreate(
+            ['game_id' => $request->input('game_id')],
+            [
+                'excluded_colors' => $request->input('excluded_colors', []),
+                'is_used' => false,
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Blokir warna untuk Game ID {$preset->game_id} berhasil disimpan!",
+            'preset' => $preset
         ]);
     }
 }

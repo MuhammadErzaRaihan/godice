@@ -16,7 +16,7 @@
         <!-- ID & Verify Link -->
         <div class="flex items-center justify-center gap-1.5 text-white font-mono text-sm sm:text-base pt-1">
             <span class="text-gray-300 font-semibold">ID:</span>
-            <strong id="current-game-id" class="text-white font-black tracking-wider text-base sm:text-2xl">Z5Fyk47ZdT</strong>
+            <strong id="current-game-id" class="text-white font-black tracking-wider text-base sm:text-2xl">----------</strong>
             <span class="text-gray-300">-</span>
             <a href="{{ route('dice.verify') }}" class="text-white underline hover:text-yellow-300 transition font-sans font-semibold text-xs sm:text-sm">
                 Verify
@@ -31,8 +31,8 @@
 
     </div>
 
-    <!-- Go Again Button Preserving Reference Design -->
-    <button onclick="triggerRoll()" class="btn-yellow w-full py-3.5 text-xl sm:text-2xl uppercase tracking-wider cursor-pointer active:scale-95 transition-transform">
+    <!-- Single Go Again Button -->
+    <button id="btn-go-again" onclick="triggerRoll()" class="btn-yellow w-full py-3.5 text-xl sm:text-2xl uppercase tracking-wider cursor-pointer active:scale-95 transition-transform">
         GO AGAIN !
     </button>
 </div>

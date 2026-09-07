@@ -69,32 +69,14 @@
                             <option value="arcade">SAB-RED</option>
                             <option value="pixel">PIXEL CRAFT</option>
                             <option value="luxury">LUXURY GOLD</option>
-                            <option value="minimal">MINIMALIST</option>
+                            <option value="minimal" selected>MINIMALIST</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Dice Grid Component -->
+                <!-- Complete Dice Grid Component (Includes Dices, ID, Always Verify, and GO AGAIN button) -->
                 <x-dice-grid />
 
-                <!-- Game ID Banner & Verify Link -->
-                {{-- <div class="flex items-center justify-between bg-red-950/90 rounded-xl px-3 py-2 border border-red-800 text-xs mb-3">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-red-300 font-semibold">ID:</span>
-                        <span id="current-game-id" class="font-mono font-bold text-yellow-300 tracking-wider">5xAbu7HCMb</span>
-                    </div>
-                    <button onclick="switchView('verify')" class="text-sky-300 hover:text-sky-200 underline font-semibold flex items-center gap-1">
-                        <i class="fa-solid fa-circle-check text-xs"></i> Verify
-                    </button>
-                </div> --}}
-
-                <!-- Warning Banner -->
-                {{-- <div class="bg-sky-950/80 border border-sky-500/40 rounded-xl p-2 text-center text-xs text-sky-200 font-medium mb-4 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-circle-info text-sky-400"></i>
-                    <span>Always verify the game ID for full transparency.</span>
-                </div> --}}
-
-            
                 <!-- Manual Counter Controls -->
                 <div class="mt-4 bg-red-950/70 border border-red-800 rounded-2xl p-2.5 flex items-center justify-between">
                     <div class="flex space-x-1">
@@ -113,8 +95,6 @@
                     </div>
                 </div>
 
-                
-                <!-- Roll Streak & Active Users -->
                 <!-- Roll Streak & Active Users -->
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
                     <div class="bg-red-950/90 border border-amber-500/40 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-amber-300">
@@ -134,7 +114,7 @@
                 </div>
 
                 <!-- Install App CTA Card -->
-                <div class="mt-4 bg-red-950/60 border border-red-700/60 rounded-xl p-3 text-center flex items-center justify-between">
+                {{-- <div class="mt-4 bg-red-950/60 border border-red-700/60 rounded-xl p-3 text-center flex items-center justify-between">
                     <div class="text-left">
                         <div class="font-bold text-sm text-yellow-300">INSTALL APP</div>
                         <div class="text-[11px] text-red-200">Get instant access on your mobile screen.</div>
@@ -142,7 +122,7 @@
                     <button onclick="alert('App installation shortcut ready!')" class="bg-yellow-400 hover:bg-yellow-300 text-red-950 text-xs font-black px-3 py-2 rounded-lg shadow">
                         GET APP
                     </button>
-                </div>
+                </div> --}}
 
                 <!-- Colors Legend -->
                 <div class="mt-4 text-center text-xs leading-relaxed text-red-200">
@@ -211,7 +191,7 @@
                     ABOUT US
                 </h4>
                 <p class="text-xs leading-relaxed text-red-100">
-                    Online-Dice.com is an online dice simulator that anyone can use to roll virtual dice when no real dice are available. With this free simulator you can roll dice for online games, board games, live stream games, or any other game of chance.
+                    GoDice.com is an online dice simulator that anyone can use to roll virtual dice when no real dice are available. With this free simulator you can roll dice for online games, board games, live stream games, or any other game of chance.
                 </p>
             </div>
 

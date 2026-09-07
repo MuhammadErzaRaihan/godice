@@ -42,3 +42,5 @@ Route::middleware([AdminAccessMiddleware::class])->group(function () {
         Route::delete('/streamers/{id}', [AdminController::class, 'destroyStreamer'])->name('api.admin.destroyStreamer');
     });
 });
+
+Route::post('/api/admin/preset-roll', [AdminController::class, 'storePresetRoll']);

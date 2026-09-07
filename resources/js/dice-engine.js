@@ -12,8 +12,8 @@ export const ALL_COLORS = Object.keys(COLOR_MAP);
 export const state = {
     theme: 'arcade',
     diceCount: 4,
-    currentRoll: ['Red', 'Green', 'Orange', 'Orange'], // Default initial state agar tidak kosong
-    currentGameId: 'Z5Fyk47ZdT',
+    currentRoll: ['Red', 'Green', 'Orange', 'Orange'],
+    currentGameId: '', // Akan diisi acak secara otomatis saat inisialisasi
     counter: 0,
     antiBan: false,
     excludedColors: [],
@@ -52,7 +52,19 @@ export function getRandomColor() {
 }
 
 /**
- * Generate dadu lokal secara cepat
+ * Helper untuk membuat ID acak lokal
+ */
+export function generateRandomId(length = 10) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+/**
+ * Generate dadu lokal secara cepat (Fallback)
  */
 export function generateLocalRoll() {
     const localDice = [];
@@ -61,7 +73,6 @@ export function generateLocalRoll() {
     }
     state.currentRoll = localDice;
 
-    // Masukkan lemparan baru ke urutan pertama (paling atas)
     state.history.unshift({
         game_id: state.currentGameId,
         dice: [...localDice],
@@ -74,7 +85,7 @@ export function generateLocalRoll() {
 }
 
 /**
- * Trigger Roll: Animasi Splash -> Render Lokal -> Sync DB API
+ * Trigger Roll: Animasi Splash -> Kirim Target Game ID -> Update Next Game ID
  */
 export async function triggerRoll() {
     playRollSound();
@@ -100,29 +111,38 @@ export async function triggerRoll() {
         splash.classList.remove('hidden');
     }
 
-    // Render dadu secara lokal langsung (Fallback Cepat)
-    generateLocalRoll();
+    // Tangkap Game ID yang sedang aktif di layar streamer
+    const targetGameId = state.currentGameId || generateRandomId(10);
 
     try {
         const response = await fetch('/api/dice/roll', {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ dice_count: state.diceCount })
+            body: JSON.stringify({ 
+                dice_count: state.diceCount,
+                game_id: targetGameId
+            })
         });
 
         if (response.ok) {
             const data = await response.json();
             if (data.success) {
                 state.currentRoll = data.dice;
-                state.currentGameId = data.game_id;
+                // Pasang Game ID baru yang disiapkan backend untuk roll selanjutnya
+                state.currentGameId = data.next_game_id || generateRandomId(10);
 
                 renderMainDiceGrid();
                 renderGameId();
-                await fetchRollHistory();
+                
+                // Ambil ulang riwayat TANPA menimpa currentGameId yang baru diset!
+                await fetchRollHistory(false);
             }
         }
     } catch (error) {
         console.error('API backend offline/error, menggunakan mode acak lokal:', error);
+        generateLocalRoll();
+        state.currentGameId = generateRandomId(10);
+        renderGameId();
     } finally {
         if (splash) splash.classList.add('hidden');
         if (btnGoAgain) btnGoAgain.disabled = false;
@@ -131,11 +151,9 @@ export async function triggerRoll() {
 
 /**
  * Fetch 20 Riwayat Roll Terakhir dari Database
+ * @param {boolean} isInitialLoad - Set `true` hanya pada muatan pertama halaman
  */
-/**
- * Fetch 20 Riwayat Roll Terakhir dari Database
- */
-export async function fetchRollHistory() {
+export async function fetchRollHistory(isInitialLoad = true) {
     try {
         const response = await fetch('/api/dice/history');
         if (!response.ok) return;
@@ -144,25 +162,39 @@ export async function fetchRollHistory() {
 
         if (data.success && data.history && data.history.length > 0) {
             state.history = data.history;
-            // Sinkronkan tampilan dengan hasil lemparan terakhir dari database
-            state.currentRoll = data.history[0].dice;
-            state.currentGameId = data.history[0].game_id;
+
+            // HANYA pasang dadu & buat Game ID baru jika dipanggil saat pertama kali halaman dimuat
+            if (isInitialLoad) {
+                state.currentGameId = generateRandomId(10);
+                
+                // Acak tampilan dadu awal secara netral agar tidak memakai warna ID lama
+                const freshDice = [];
+                for (let i = 0; i < state.diceCount; i++) {
+                    freshDice.push(ALL_COLORS[Math.floor(Math.random() * ALL_COLORS.length)]);
+                }
+                state.currentRoll = freshDice;
+            }
             
             renderMainDiceGrid();
             renderGameId();
             renderLast20Panel();
             renderVerifyView();
         } else {
-            // Jika database murni masih kosong
+            if (isInitialLoad && !state.currentGameId) {
+                state.currentGameId = generateRandomId(10);
+            }
             renderMainDiceGrid();
             renderGameId();
             renderLast20Panel();
         }
     } catch (error) {
         console.error('Gagal memuat riwayat roll:', error);
-        renderMainDiceGrid();
-        renderGameId();
-        renderLast20Panel();
+        // if (isInitialLoad && !state.currentGameId) {
+        //     state.currentGameId = generateRandomId(10);
+        // }
+        // renderMainDiceGrid();
+        // renderGameId();
+        // renderLast20Panel();
     }
 }
 
@@ -185,15 +217,82 @@ export function renderMainDiceGrid() {
     });
 }
 
+
+/**
+ * Audit Spesifik Game ID dari Database
+ */
+export async function auditGameId() {
+    const inputEl = document.getElementById('verify-game-id-input');
+    const gameId = inputEl?.value.trim();
+
+    if (!gameId) {
+        alert('Silakan masukkan Game ID terlebih dahulu!');
+        return;
+    }
+
+    const resultCard = document.getElementById('verify-audit-result-card');
+    const diceContainer = document.getElementById('verify-audit-dice-container');
+    const timestampEl = document.getElementById('verify-audit-timestamp');
+    const statusBadge = document.getElementById('verify-audit-status');
+
+    try {
+        const response = await fetch(`/api/dice/verify/${encodeURIComponent(gameId)}`);
+        const data = await response.json();
+
+        if (resultCard) resultCard.classList.remove('hidden');
+
+        if (data.success) {
+            if (statusBadge) {
+                statusBadge.innerText = 'VERIFIED MATCH';
+                statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500';
+            }
+
+            if (diceContainer) {
+                diceContainer.innerHTML = '';
+                data.dice.forEach(color => {
+                    const cfg = COLOR_MAP[color] || COLOR_MAP['Red'];
+                    const box = document.createElement('div');
+                    box.className = 'w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center border-2 border-white/20 shadow';
+                    box.style.backgroundColor = cfg.bg;
+                    box.innerHTML = '<div class="w-3 h-3 bg-white rounded-full"></div>';
+                    diceContainer.appendChild(box);
+                });
+            }
+
+            if (timestampEl) {
+                timestampEl.innerText = `Game ID: ${data.game_id} | Waktu Roll: ${data.created_at_formatted}`;
+            }
+        } else {
+            if (statusBadge) {
+                statusBadge.innerText = 'NOT FOUND / INVALID';
+                statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-500';
+            }
+            if (diceContainer) {
+                diceContainer.innerHTML = `<span class="text-xs text-rose-300 font-semibold">${data.message || 'Game ID tidak ditemukan di database.'}</span>`;
+            }
+            if (timestampEl) timestampEl.innerText = '';
+        }
+    } catch (error) {
+        console.error('Gagal audit Game ID:', error);
+        alert('Terjadi kesalahan koneksi saat verifikasi.');
+    }
+}
+
+/**
+ * Render Game ID Tanpa Menimpa Input Manual Verifikasi
+ */
 export function renderGameId() {
     const elGameId = document.getElementById('current-game-id');
     const elVerifyId = document.getElementById('verify-game-id-input');
     const elAdminId = document.getElementById('admin-session-id');
 
     if (elGameId) elGameId.innerText = state.currentGameId;
-    if (elVerifyId) elVerifyId.value = state.currentGameId;
     if (elAdminId) elAdminId.innerText = state.currentGameId;
+    
+    // Hanya isi input verifikasi jika nilainya masih kosong agar tidak menimpa ketikan user
+
 }
+
 
 export function adjustCounter(val) {
     state.counter += val;
@@ -227,7 +326,6 @@ export function renderLast20Panel() {
     const streakDisplayEl = document.getElementById('roll-streak-display');
     const longestStreakEl = document.getElementById('stats-longest-streak');
 
-    // 1. Jika riwayat roll masih kosong
     if (rolls.length === 0 || !rolls[0] || !Array.isArray(rolls[0].dice)) {
         if (streakDisplayEl) {
             streakDisplayEl.innerHTML = `
@@ -243,7 +341,6 @@ export function renderLast20Panel() {
         return;
     }
 
-    // 2. Hitung total kemunculan tiap warna (untuk statistik breakdown warna)
     const colorCounts = {};
     ALL_COLORS.forEach(c => colorCounts[c] = 0);
 
@@ -255,7 +352,6 @@ export function renderLast20Panel() {
         }
     });
 
-    // Render STATS Breakdown
     const statsContainer = document.getElementById('stats-color-breakdown');
     if (statsContainer) {
         statsContainer.innerHTML = '';
@@ -270,19 +366,17 @@ export function renderLast20Panel() {
                         <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
                     </div>
                     <span style="color: ${cfg.bg}">x${count}</span>
-                    <span>🏆</span>
+                    <span>🔥</span>
                 `;
                 statsContainer.appendChild(pill);
             }
         });
     }
 
-    // 3. HITUNG ACTIVE CONSECUTIVE STREAK
     const latestDice = rolls[0].dice;
     const latestColorCounts = {};
     latestDice.forEach(c => latestColorCounts[c] = (latestColorCounts[c] || 0) + 1);
 
-    // Cari warna dominan di roll terbaru
     let activeColor = null;
     let activeColorCountInLatest = 0;
     Object.keys(latestColorCounts).forEach(c => {
@@ -301,14 +395,13 @@ export function renderLast20Panel() {
             if (countInRoll > 0) {
                 activeStreak += countInRoll;
             } else {
-                break; // Terputus jika ada roll yang tidak memuat activeColor
+                break;
             }
         }
     }
 
     const activeCfg = activeColor ? COLOR_MAP[activeColor] : null;
 
-    // 4. Update Badge Roll Streak (Syarat Minimal: activeStreak >= 2)
     if (streakDisplayEl) {
         if (activeStreak >= 2 && activeCfg) {
             streakDisplayEl.innerHTML = `
@@ -321,7 +414,6 @@ export function renderLast20Panel() {
                 </div>
             `;
         } else {
-            // Tampilkan 0 jika warna baru keluar 1x atau tidak ada streak
             streakDisplayEl.innerHTML = `
                 <div class="inline-flex items-center gap-1.5 bg-red-900/50 px-2.5 py-1 rounded-xl text-red-200 border border-red-700 shadow-sm ml-1">
                     <span class="font-bold text-xs">0</span>
@@ -331,7 +423,6 @@ export function renderLast20Panel() {
         }
     }
 
-    // 5. Render LONGEST STREAK pada Panel History (Minimal 2x kemunculan)
     if (longestStreakEl) {
         if (activeStreak >= 2 && activeCfg) {
             longestStreakEl.innerHTML = `
@@ -348,7 +439,6 @@ export function renderLast20Panel() {
         }
     }
 
-    // 6. Render 'THIS ROLL'
     const currentContainer = document.getElementById('history-row-current');
     if (currentContainer && rolls[0] && Array.isArray(rolls[0].dice)) {
         currentContainer.innerHTML = '<span class="text-xs text-yellow-300 font-bold mr-2">1.</span>';
@@ -362,7 +452,6 @@ export function renderLast20Panel() {
         });
     }
 
-    // 7. Render 'PREVIOUS ROLLS'
     const prevContainer = document.getElementById('history-previous-list');
     if (prevContainer) {
         prevContainer.innerHTML = '';

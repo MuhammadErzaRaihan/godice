@@ -13,7 +13,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body 
-    @if(!request()->routeIs('admin.*')) data-theme="arcade" @endif 
+    @if(!request()->routeIs('admin.*')) data-theme="minimal" @endif 
     class="{{ request()->routeIs('admin.*') ? 'admin-cyberpunk' : '' }} min-h-screen text-white flex flex-col justify-between selection:bg-yellow-400 selection:text-black">
 
     <!-- Header Navigation Component -->
