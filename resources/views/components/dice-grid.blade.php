@@ -1,5 +1,5 @@
 <div class="space-y-4">
-    <!-- Main Dice Display Card -->
+    <!-- Main Dice Display Card (Includes Dices, ID, Always Verify, and GO AGAIN button in 1 layout) -->
     <div class="relative bg-red-950/80 rounded-2xl p-4 sm:p-6 border-2 border-red-800/80 min-h-[140px] flex flex-col items-center justify-center space-y-3">
         
         <!-- Sleek Top Badge when Anti-Ban Active -->
@@ -16,7 +16,7 @@
         <!-- ID & Verify Link -->
         <div class="flex items-center justify-center gap-1.5 text-white font-mono text-sm sm:text-base pt-1">
             <span class="text-gray-300 font-semibold">ID:</span>
-            <strong id="current-game-id" class="text-white font-black tracking-wider text-base sm:text-2xl">----------</strong>
+            <strong id="current-game-id" onclick="copyGameId()" class="text-white font-black tracking-wider text-base sm:text-2xl">----------</strong>
             <span class="text-gray-300">-</span>
             <a href="{{ route('dice.verify') }}" class="text-white underline hover:text-yellow-300 transition font-sans font-semibold text-xs sm:text-sm">
                 Verify
@@ -29,10 +29,10 @@
             <span>Always verify the game ID</span>
         </div>
 
-    </div>
+        <!-- GO AGAIN BUTTON (Inside the same frame right under Always Verify) -->
+        <button id="btn-go-again" onclick="triggerRoll()" class="btn-yellow w-full py-3.5 text-xl sm:text-2xl uppercase tracking-wider cursor-pointer active:scale-95 transition-transform mt-2">
+            GO AGAIN !
+        </button>
 
-    <!-- Single Go Again Button -->
-    <button id="btn-go-again" onclick="triggerRoll()" class="btn-yellow w-full py-3.5 text-xl sm:text-2xl uppercase tracking-wider cursor-pointer active:scale-95 transition-transform">
-        GO AGAIN !
-    </button>
+    </div>
 </div>

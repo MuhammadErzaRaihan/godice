@@ -13,10 +13,11 @@ export const state = {
     theme: 'arcade',
     diceCount: 4,
     currentRoll: ['Red', 'Green', 'Orange', 'Orange'],
-    currentGameId: '', // Akan diisi acak secara otomatis saat inisialisasi
+    currentGameId: '',
     counter: 0,
     antiBan: false,
     excludedColors: [],
+    forcedColors: [],
     history: [],
     usersOnline: 792,
     streamers: []
@@ -51,9 +52,6 @@ export function getRandomColor() {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
-/**
- * Helper untuk membuat ID acak lokal
- */
 export function generateRandomId(length = 10) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
@@ -63,9 +61,6 @@ export function generateRandomId(length = 10) {
     return result;
 }
 
-/**
- * Generate dadu lokal secara cepat (Fallback)
- */
 export function generateLocalRoll() {
     const localDice = [];
     for (let i = 0; i < state.diceCount; i++) {
@@ -84,25 +79,97 @@ export function generateLocalRoll() {
     renderLast20Panel();
 }
 
-/**
- * Trigger Roll: Animasi Splash -> Kirim Target Game ID -> Update Next Game ID
- */
+// export async function triggerRoll() {
+//     playRollSound();
+//     const splash = document.getElementById('splash-overlay');
+//     const splashDiceGrid = document.getElementById('splash-dice-grid');
+//     const btnGoAgain = document.getElementById('btn-go-again');
+//     if (btnGoAgain) btnGoAgain.disabled = true;
+
+//     if (splash && splashDiceGrid) {
+//         splashDiceGrid.innerHTML = '';
+//         for (let i = 0; i < state.diceCount; i++) {
+//             const box = document.createElement('div');
+//             box.className = 'w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl flex items-center justify-center border-2 border-gray-100 shadow-2xl animate-dice-tumble';
+//             box.style.animationDelay = `${(i * 0.08).toFixed(2)}s`;
+//             const dot = document.createElement('div');
+//             dot.className = 'w-3 h-3 bg-gray-200 rounded-full shadow-inner';
+//             box.appendChild(dot);
+//             splashDiceGrid.appendChild(box);
+//         }
+//         splash.classList.remove('hidden');
+//     }
+
+//     try {
+//         const response = await fetch('/api/dice/roll', {
+//             method: 'POST',
+//             headers: getHeaders(),
+//             body: JSON.stringify({ 
+//                 dice_count: state.diceCount,
+//                 game_id: state.currentGameId
+//             })
+//         });
+
+//         if (response.ok) {
+//             const data = await response.json();
+//             if (data.success) {
+//                 state.currentRoll = data.dice;
+//                 state.currentGameId = data.next_game_id;
+//                 renderMainDiceGrid();
+//                 renderGameId();
+//                 await fetchRollHistory(false);
+//             }
+//         }
+//     } catch (error) {
+//         console.error('API backend offline/error, menggunakan mode acak lokal:', error);
+//         generateLocalRoll();
+//         renderGameId();
+//     } finally {
+//         if (splash) splash.classList.add('hidden');
+//         if (btnGoAgain) btnGoAgain.disabled = false;
+//     }
+// }
+
+// export async function fetchRollHistory(isInitialLoad = true) {
+//     try {
+//         const response = await fetch('/api/dice/history');
+//         if (!response.ok) return;
+
+//         const data = await response.json();
+
+//         if (data.success) {
+//             if (data.history) state.history = data.history;
+
+//             if (data.current_game_id) {
+//                 state.currentGameId = data.current_game_id;
+//             }
+
+//             if (isInitialLoad && data.history && data.history.length > 0) {
+//                 state.currentRoll = data.history[0].dice;
+//             }
+
+//             renderMainDiceGrid();
+//             renderGameId();
+//             renderLast20Panel();
+//             renderVerifyView();
+//         }
+//     } catch (error) {
+//         console.error('Gagal memuat riwayat roll:', error);
+//     }
+// }
 export async function triggerRoll() {
     playRollSound();
     const splash = document.getElementById('splash-overlay');
     const splashDiceGrid = document.getElementById('splash-dice-grid');
     const btnGoAgain = document.getElementById('btn-go-again');
-
     if (btnGoAgain) btnGoAgain.disabled = true;
 
-    // Render animasi splash
     if (splash && splashDiceGrid) {
         splashDiceGrid.innerHTML = '';
         for (let i = 0; i < state.diceCount; i++) {
             const box = document.createElement('div');
             box.className = 'w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl flex items-center justify-center border-2 border-gray-100 shadow-2xl animate-dice-tumble';
             box.style.animationDelay = `${(i * 0.08).toFixed(2)}s`;
-
             const dot = document.createElement('div');
             dot.className = 'w-3 h-3 bg-gray-200 rounded-full shadow-inner';
             box.appendChild(dot);
@@ -111,8 +178,9 @@ export async function triggerRoll() {
         splash.classList.remove('hidden');
     }
 
-    // Tangkap Game ID yang sedang aktif di layar streamer
-    const targetGameId = state.currentGameId || generateRandomId(10);
+    // --- TAMBAHKAN PEMBACAAN MOCK IP DI SINI ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const mockIp = urlParams.get('mock_ip');
 
     try {
         const response = await fetch('/api/dice/roll', {
@@ -120,7 +188,8 @@ export async function triggerRoll() {
             headers: getHeaders(),
             body: JSON.stringify({ 
                 dice_count: state.diceCount,
-                game_id: targetGameId
+                game_id: state.currentGameId,
+                mock_ip: mockIp // Send mock_ip directly in payload
             })
         });
 
@@ -128,20 +197,15 @@ export async function triggerRoll() {
             const data = await response.json();
             if (data.success) {
                 state.currentRoll = data.dice;
-                // Pasang Game ID baru yang disiapkan backend untuk roll selanjutnya
-                state.currentGameId = data.next_game_id || generateRandomId(10);
-
+                state.currentGameId = data.next_game_id;
                 renderMainDiceGrid();
                 renderGameId();
-                
-                // Ambil ulang riwayat TANPA menimpa currentGameId yang baru diset!
                 await fetchRollHistory(false);
             }
         }
     } catch (error) {
         console.error('API backend offline/error, menggunakan mode acak lokal:', error);
         generateLocalRoll();
-        state.currentGameId = generateRandomId(10);
         renderGameId();
     } finally {
         if (splash) splash.classList.add('hidden');
@@ -149,52 +213,40 @@ export async function triggerRoll() {
     }
 }
 
-/**
- * Fetch 20 Riwayat Roll Terakhir dari Database
- * @param {boolean} isInitialLoad - Set `true` hanya pada muatan pertama halaman
- */
 export async function fetchRollHistory(isInitialLoad = true) {
     try {
-        const response = await fetch('/api/dice/history');
+        // --- TAMBAHKAN PEMBACAAN MOCK IP UNTUK HISTORY ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const mockIp = urlParams.get('mock_ip');
+        
+        let historyUrl = '/api/dice/history';
+        if (mockIp) {
+            historyUrl += '?mock_ip=' + encodeURIComponent(mockIp);
+        }
+
+        const response = await fetch(historyUrl);
         if (!response.ok) return;
 
         const data = await response.json();
 
-        if (data.success && data.history && data.history.length > 0) {
-            state.history = data.history;
+        if (data.success) {
+            if (data.history) state.history = data.history;
 
-            // HANYA pasang dadu & buat Game ID baru jika dipanggil saat pertama kali halaman dimuat
-            if (isInitialLoad) {
-                state.currentGameId = generateRandomId(10);
-                
-                // Acak tampilan dadu awal secara netral agar tidak memakai warna ID lama
-                const freshDice = [];
-                for (let i = 0; i < state.diceCount; i++) {
-                    freshDice.push(ALL_COLORS[Math.floor(Math.random() * ALL_COLORS.length)]);
-                }
-                state.currentRoll = freshDice;
+            if (data.current_game_id) {
+                state.currentGameId = data.current_game_id;
             }
-            
+
+            if (isInitialLoad && data.history && data.history.length > 0) {
+                state.currentRoll = data.history[0].dice;
+            }
+
             renderMainDiceGrid();
             renderGameId();
             renderLast20Panel();
             renderVerifyView();
-        } else {
-            if (isInitialLoad && !state.currentGameId) {
-                state.currentGameId = generateRandomId(10);
-            }
-            renderMainDiceGrid();
-            renderGameId();
-            renderLast20Panel();
         }
     } catch (error) {
         console.error('Gagal memuat riwayat roll:', error);
-        // if (isInitialLoad && !state.currentGameId) {
-        //     state.currentGameId = generateRandomId(10);
-        // }
-        // renderMainDiceGrid();
-        // renderGameId();
-        // renderLast20Panel();
     }
 }
 
@@ -217,10 +269,6 @@ export function renderMainDiceGrid() {
     });
 }
 
-
-/**
- * Audit Spesifik Game ID dari Database
- */
 export async function auditGameId() {
     const inputEl = document.getElementById('verify-game-id-input');
     const gameId = inputEl?.value.trim();
@@ -278,21 +326,13 @@ export async function auditGameId() {
     }
 }
 
-/**
- * Render Game ID Tanpa Menimpa Input Manual Verifikasi
- */
 export function renderGameId() {
     const elGameId = document.getElementById('current-game-id');
-    const elVerifyId = document.getElementById('verify-game-id-input');
     const elAdminId = document.getElementById('admin-session-id');
 
     if (elGameId) elGameId.innerText = state.currentGameId;
     if (elAdminId) elAdminId.innerText = state.currentGameId;
-    
-    // Hanya isi input verifikasi jika nilainya masih kosong agar tidak menimpa ketikan user
-
 }
-
 
 export function adjustCounter(val) {
     state.counter += val;
@@ -542,3 +582,34 @@ export function renderVerifyView() {
         });
     }
 }
+
+window.copyGameId = function() {
+    const gameId = state.currentGameId; //[cite: 18]
+    if (!gameId) return;
+
+    navigator.clipboard.writeText(gameId).then(() => {
+        const el = document.getElementById('current-game-id');
+        if (!el) return;
+
+        const originalText = el.innerText;
+        el.innerText = 'COPIED!';
+        el.classList.add('text-green-400');
+
+        setTimeout(() => {
+            el.innerText = originalText;
+            el.classList.remove('text-green-400');
+        }, 1000);
+    });
+};
+
+// Jalankan di dice-engine.js untuk auto-update daftar streamer
+setInterval(async () => {
+    try {
+        const res = await fetch('/api/admin/streamers');
+        const data = await res.json();
+        if (data.success) {
+            state.streamers = data.streamers;
+            renderStreamersUI(); // Panggil fungsi render elemen streamer kamu
+        }
+    } catch (e) {}
+}, 30000); // 30 detik

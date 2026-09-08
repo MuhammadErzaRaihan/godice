@@ -10,10 +10,10 @@ import {
     addVerifiedStreamer, loadStreamers 
 } from './streamer-manager.js';
 
-// --- State Lokal untuk Targeted Rigging ---
 let targetedExcludedColors = [];
+let targetedForcedColors = [];
+let targetDebounceTimer = null;
 
-// --- API Sync Helpers ---
 async function loadAdminRigSettings() {
     try {
         const response = await fetch('/api/admin/rig');
@@ -22,14 +22,15 @@ async function loadAdminRigSettings() {
         const data = await response.json();
         if (data.success) {
             state.excludedColors = data.excluded_colors || [];
+            state.forcedColors = data.forced_colors || [];
             renderAdminToggles();
         }
     } catch (error) {
-        console.error('Gagal memuat aturan rigging:', error);
+        console.error('Gagal memuat aturan rigging global:', error);
     }
 }
 
-async function syncRigToBackend(excludedColors) {
+async function syncRigToBackend(excludedColors, forcedColors) {
     try {
         await fetch('/api/admin/rig', {
             method: 'POST',
@@ -38,14 +39,16 @@ async function syncRigToBackend(excludedColors) {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
             },
-            body: JSON.stringify({ excluded_colors: excludedColors })
+            body: JSON.stringify({ 
+                excluded_colors: excludedColors,
+                forced_colors: forcedColors 
+            })
         });
     } catch (error) {
-        console.error('Gagal menyimpan aturan rigging:', error);
+        console.error('Gagal menyimpan aturan rigging global:', error);
     }
 }
 
-// --- Global Event Binding ---
 window.switchTheme = switchTheme;
 window.triggerRoll = triggerRoll;
 window.adjustCounter = adjustCounter;
@@ -61,34 +64,124 @@ window.toggleLast20Panel = function() {
     if (panel) panel.classList.toggle('hidden');
 };
 
-// Handler Toggle Global
 window.toggleExcludeColor = function(color) {
     if (state.excludedColors.includes(color)) {
         state.excludedColors = state.excludedColors.filter(c => c !== color);
     } else {
         state.excludedColors.push(color);
+        // Jika diblokir, otomatis hapus dari warna wajib
+        state.forcedColors = state.forcedColors.filter(c => c !== color);
     }
     renderAdminToggles();
-    syncRigToBackend(state.excludedColors);
+    syncRigToBackend(state.excludedColors, state.forcedColors);
 };
 
-// Handler Toggle Target ID
+window.toggleForcedColor = function(color) {
+    if (state.forcedColors.includes(color)) {
+        state.forcedColors = state.forcedColors.filter(c => c !== color);
+    } else {
+        state.forcedColors.push(color);
+        // Jika diwajibkan, otomatis hapus dari warna blokir
+        state.excludedColors = state.excludedColors.filter(c => c !== color);
+    }
+    renderAdminToggles();
+    syncRigToBackend(state.excludedColors, state.forcedColors);
+};
+
 window.toggleTargetedExcludeColor = function(color) {
     if (targetedExcludedColors.includes(color)) {
         targetedExcludedColors = targetedExcludedColors.filter(c => c !== color);
     } else {
         targetedExcludedColors.push(color);
+        targetedForcedColors = targetedForcedColors.filter(c => c !== color);
+    }
+    renderTargetedToggles();
+};
+
+window.toggleTargetedForcedColor = function(color) {
+    if (targetedForcedColors.includes(color)) {
+        targetedForcedColors = targetedForcedColors.filter(c => c !== color);
+    } else {
+        targetedForcedColors.push(color);
+        targetedExcludedColors = targetedExcludedColors.filter(c => c !== color);
     }
     renderTargetedToggles();
 };
 
 window.applyRigPreset = function(preset) {
-    if (preset === 'clean') state.excludedColors = [];
-    else if (preset === 'no-red-blue') state.excludedColors = ['Red', 'Blue'];
-    else if (preset === 'only-yellow') state.excludedColors = ['Red', 'Orange', 'Green', 'Blue', 'Purple'];
+    if (preset === 'clean') {
+        state.excludedColors = [];
+        state.forcedColors = [];
+    } else if (preset === 'no-red-blue') {
+        state.excludedColors = ['Red', 'Blue'];
+        state.forcedColors = [];
+    } else if (preset === 'only-yellow') {
+        state.excludedColors = ['Red', 'Orange', 'Green', 'Blue', 'Purple'];
+        state.forcedColors = ['Yellow'];
+    } else if (preset === 'block-3-guarantee-yellow') {
+        state.excludedColors = ['Green', 'Blue', 'Purple'];
+        state.forcedColors = ['Yellow'];
+    }
     
     renderAdminToggles();
-    syncRigToBackend(state.excludedColors);
+    syncRigToBackend(state.excludedColors, state.forcedColors);
+};
+
+window.applyTargetedRigPreset = function(preset) {
+    if (preset === 'clean') {
+        targetedExcludedColors = [];
+        targetedForcedColors = [];
+    } else if (preset === 'no-red-blue') {
+        targetedExcludedColors = ['Red', 'Blue'];
+        targetedForcedColors = [];
+    } else if (preset === 'only-yellow') {
+        targetedExcludedColors = ['Red', 'Orange', 'Green', 'Blue', 'Purple'];
+        targetedForcedColors = ['Yellow'];
+    } else if (preset === 'block-3-guarantee-yellow') {
+        targetedExcludedColors = ['Green', 'Blue', 'Purple'];
+        targetedForcedColors = ['Yellow'];
+    }
+    
+    renderTargetedToggles();
+};
+
+window.loadTargetedPresetForGameId = async function(gameId) {
+    if (!gameId) return;
+    try {
+        const response = await fetch(`/api/admin/preset-roll/${encodeURIComponent(gameId)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                targetedExcludedColors = data.excluded_colors || [];
+                targetedForcedColors = data.forced_colors || [];
+                renderTargetedToggles();
+            }
+        }
+    } catch (e) {
+        console.error('Gagal memuat preset khusus Game ID:', e);
+    }
+};
+
+window.fillActiveSessionId = function() {
+    const input = document.getElementById('rig-target-game-id');
+    if (input && state.currentGameId) {
+        input.value = state.currentGameId;
+        window.loadTargetedPresetForGameId(state.currentGameId);
+    }
+};
+
+window.onTargetGameIdChange = function(val) {
+    clearTimeout(targetDebounceTimer);
+    targetDebounceTimer = setTimeout(() => {
+        const gameId = val.trim();
+        if (gameId) {
+            window.loadTargetedPresetForGameId(gameId);
+        } else {
+            targetedExcludedColors = [];
+            targetedForcedColors = [];
+            renderTargetedToggles();
+        }
+    }, 300);
 };
 
 window.saveTargetedColorRig = async function() {
@@ -110,18 +203,18 @@ window.saveTargetedColorRig = async function() {
             },
             body: JSON.stringify({
                 game_id: gameId,
-                excluded_colors: targetedExcludedColors
+                excluded_colors: targetedExcludedColors,
+                forced_colors: targetedForcedColors
             })
         });
 
         const data = await response.json();
-        if (data.success) {
-            alert(`Berhasil! Game ID "${gameId}" memblokir warna: ${targetedExcludedColors.join(', ') || 'Tidak ada (Fair)'}`);
-            gameIdInput.value = '';
-            targetedExcludedColors = [];
+        if (response.ok && data.success) {
+            alert(data.message || `Berhasil menyimpan aturan untuk Game ID "${gameId}".`);
             renderTargetedToggles();
         } else {
-            alert(data.message || 'Gagal menyimpan aturan.');
+            const errorMsg = data.errors ? Object.values(data.errors).flat().join('\n') : (data.message || 'Gagal menyimpan aturan.');
+            alert(errorMsg);
         }
     } catch (error) {
         console.error('Error saving targeted rig:', error);
@@ -145,43 +238,75 @@ window.testAdminRoll = function() {
     }
 };
 
-// --- Admin Render Functions ---
 function renderAdminPage() {
     renderAdminToggles();
-    renderTargetedToggles();
+    
+    const targetInput = document.getElementById('rig-target-game-id');
+    if (targetInput && state.currentGameId && !targetInput.value) {
+        targetInput.value = state.currentGameId;
+        window.loadTargetedPresetForGameId(state.currentGameId);
+    } else {
+        renderTargetedToggles();
+    }
+
     renderAdminStreamerList();
     renderGameId();
 }
 
 function renderAdminToggles() {
-    const container = document.getElementById('admin-color-toggles');
+    const containerExcluded = document.getElementById('admin-color-toggles');
+    const containerForced = document.getElementById('admin-forced-color-toggles');
     const statusBadge = document.getElementById('rig-status-badge');
-    if (!container) return;
 
-    container.innerHTML = '';
-    ALL_COLORS.forEach(color => {
-        const isExcluded = state.excludedColors.includes(color);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `p-3 rounded-xl text-xs font-bold border flex items-center justify-between transition cursor-pointer ${
-            isExcluded 
-                ? 'bg-rose-950/80 border-rose-600 text-rose-300 shadow-inner' 
-                : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-600/60 text-white'
-        }`;
-        btn.innerHTML = `
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full shrink-0 border border-white/20" style="background-color: ${COLOR_MAP[color].bg}"></span>
-                <span>${color}</span>
-            </div>
-            <i class="fa-solid ${isExcluded ? 'fa-ban text-rose-400 text-sm' : 'fa-check text-emerald-400 text-xs'}"></i>
-        `;
-        btn.onclick = () => window.toggleExcludeColor(color);
-        container.appendChild(btn);
-    });
+    if (containerExcluded) {
+        containerExcluded.innerHTML = '';
+        ALL_COLORS.forEach(color => {
+            const isExcluded = state.excludedColors.includes(color);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `p-2.5 rounded-xl text-xs font-bold border flex items-center justify-between transition cursor-pointer ${
+                isExcluded 
+                    ? 'bg-rose-950/90 border-rose-600 text-rose-300 shadow-inner' 
+                    : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-600/60 text-white'
+            }`;
+            btn.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full shrink-0 border border-white/20" style="background-color: ${COLOR_MAP[color].bg}"></span>
+                    <span>${color}</span>
+                </div>
+                <i class="fa-solid ${isExcluded ? 'fa-ban text-rose-400 text-sm' : 'fa-check text-emerald-400/40 text-xs'}"></i>
+            `;
+            btn.onclick = () => window.toggleExcludeColor(color);
+            containerExcluded.appendChild(btn);
+        });
+    }
+
+    if (containerForced) {
+        containerForced.innerHTML = '';
+        ALL_COLORS.forEach(color => {
+            const isForced = state.forcedColors.includes(color);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `p-2.5 rounded-xl text-xs font-bold border flex items-center justify-between transition cursor-pointer ${
+                isForced 
+                    ? 'bg-amber-950/90 border-amber-500 text-amber-300 shadow-inner' 
+                    : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-600/60 text-white'
+            }`;
+            btn.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full shrink-0 border border-white/20" style="background-color: ${COLOR_MAP[color].bg}"></span>
+                    <span>${color}</span>
+                </div>
+                <i class="fa-solid ${isForced ? 'fa-star text-amber-400 text-sm' : 'fa-plus text-slate-400/40 text-xs'}"></i>
+            `;
+            btn.onclick = () => window.toggleForcedColor(color);
+            containerForced.appendChild(btn);
+        });
+    }
 
     if (statusBadge) {
-        if (state.excludedColors.length > 0) {
-            statusBadge.innerText = `RIG ACTIVE (${state.excludedColors.length} EXCLUDED)`;
+        if (state.excludedColors.length > 0 || state.forcedColors.length > 0) {
+            statusBadge.innerText = `RIG ACTIVE (${state.excludedColors.length} BLOCKED | ${state.forcedColors.length} GUARANTEED)`;
             statusBadge.className = 'text-[10px] uppercase font-bold px-2.5 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-600 animate-pulse';
         } else {
             statusBadge.innerText = 'FAIR / CLEAN ROLL';
@@ -191,34 +316,59 @@ function renderAdminToggles() {
 }
 
 function renderTargetedToggles() {
-    const container = document.getElementById('targeted-color-toggles');
+    const containerExcluded = document.getElementById('targeted-color-toggles');
+    const containerForced = document.getElementById('targeted-forced-color-toggles');
     const statusBadge = document.getElementById('targeted-rig-status-badge');
-    if (!container) return;
 
-    container.innerHTML = '';
-    ALL_COLORS.forEach(color => {
-        const isExcluded = targetedExcludedColors.includes(color);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `p-3 rounded-xl text-xs font-bold border flex items-center justify-between transition cursor-pointer ${
-            isExcluded 
-                ? 'bg-rose-950/80 border-rose-600 text-rose-300 shadow-inner' 
-                : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-600/60 text-white'
-        }`;
-        btn.innerHTML = `
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full shrink-0 border border-white/20" style="background-color: ${COLOR_MAP[color].bg}"></span>
-                <span>${color}</span>
-            </div>
-            <i class="fa-solid ${isExcluded ? 'fa-ban text-rose-400 text-sm' : 'fa-check text-emerald-400 text-xs'}"></i>
-        `;
-        btn.onclick = () => window.toggleTargetedExcludeColor(color);
-        container.appendChild(btn);
-    });
+    if (containerExcluded) {
+        containerExcluded.innerHTML = '';
+        ALL_COLORS.forEach(color => {
+            const isExcluded = targetedExcludedColors.includes(color);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `p-2.5 rounded-xl text-xs font-bold border flex items-center justify-between transition cursor-pointer ${
+                isExcluded 
+                    ? 'bg-rose-950/90 border-rose-600 text-rose-300 shadow-inner' 
+                    : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-600/60 text-white'
+            }`;
+            btn.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full shrink-0 border border-white/20" style="background-color: ${COLOR_MAP[color].bg}"></span>
+                    <span>${color}</span>
+                </div>
+                <i class="fa-solid ${isExcluded ? 'fa-ban text-rose-400 text-sm' : 'fa-check text-emerald-400/40 text-xs'}"></i>
+            `;
+            btn.onclick = () => window.toggleTargetedExcludeColor(color);
+            containerExcluded.appendChild(btn);
+        });
+    }
+
+    if (containerForced) {
+        containerForced.innerHTML = '';
+        ALL_COLORS.forEach(color => {
+            const isForced = targetedForcedColors.includes(color);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `p-2.5 rounded-xl text-xs font-bold border flex items-center justify-between transition cursor-pointer ${
+                isForced 
+                    ? 'bg-amber-950/90 border-amber-500 text-amber-300 shadow-inner' 
+                    : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-600/60 text-white'
+            }`;
+            btn.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full shrink-0 border border-white/20" style="background-color: ${COLOR_MAP[color].bg}"></span>
+                    <span>${color}</span>
+                </div>
+                <i class="fa-solid ${isForced ? 'fa-star text-amber-400 text-sm' : 'fa-plus text-slate-400/40 text-xs'}"></i>
+            `;
+            btn.onclick = () => window.toggleTargetedForcedColor(color);
+            containerForced.appendChild(btn);
+        });
+    }
 
     if (statusBadge) {
-        if (targetedExcludedColors.length > 0) {
-            statusBadge.innerText = `RIG (${targetedExcludedColors.length} BLOCKED)`;
+        if (targetedExcludedColors.length > 0 || targetedForcedColors.length > 0) {
+            statusBadge.innerText = `RIG (${targetedExcludedColors.length} BLOCKED | ${targetedForcedColors.length} GUARANTEED)`;
             statusBadge.className = 'text-[10px] uppercase font-bold px-2.5 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-600 animate-pulse';
         } else {
             statusBadge.innerText = 'CLEAN ROLL';
@@ -227,7 +377,6 @@ function renderTargetedToggles() {
     }
 }
 
-// --- Live User Fluctuation Simulation ---
 setInterval(() => {
     const delta = Math.floor(Math.random() * 7) - 3;
     state.usersOnline = Math.max(500, state.usersOnline + delta);
@@ -235,7 +384,6 @@ setInterval(() => {
     if (userEl) userEl.innerText = state.usersOnline;
 }, 4000);
 
-// --- Application Single Entry Point ---
 document.addEventListener('DOMContentLoaded', () => {
     loadStreamers();
     fetchRollHistory(true);

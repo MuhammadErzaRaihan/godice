@@ -9,9 +9,10 @@ return new class extends Migration {
     {
         Schema::create('dice_rolls', function (Blueprint $table) {
             $table->id();
-            $table->string('game_id')->unique();
+            // Non-unique index allows multiple rolls under the same persistent Game ID
+            $table->string('game_id')->index();
             $table->integer('dice_count');
-            $table->json('results'); // Menyimpan array warna hasil dadu[cite: 1]
+            $table->json('results');
             $table->string('client_ip')->nullable();
             $table->timestamps();
         });

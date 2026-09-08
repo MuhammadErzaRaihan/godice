@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use App\Models\DiceRoll;
 use App\Models\RigSetting;
 use App\Models\RiggedRoll;
@@ -12,6 +11,7 @@ class DiceController extends Controller
 {
     public function index()
     {
+        
         return view('dice.index');
     }
 
@@ -20,47 +20,131 @@ class DiceController extends Controller
         return view('dice.verify');
     }
 
-    /**
-     * API: Eksekusi Roll Dadu dengan Sistem Rigging Terintegrasi Database
-     */
+    // private function getNetworkGameId(Request $request): string
+    // {
+    //     $hash = hash('sha256', $request->ip() . 'godice_salt_secret');
+    //     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    //     $charsLen = strlen($chars);
+        
+    //     $gameId = '';
+    //     for ($i = 0; $i < 10; $i++) {
+    //         $val = hexdec(substr($hash, $i * 2, 2));
+    //         $gameId .= $chars[$val % $charsLen];
+    //     }
+        
+    //     return $gameId;
+    // }
+    
+    // private function getNetworkGameId(Request $request): string
+    // {
+    //     // Jika ada parameter mock_ip di URL, simpan ke session
+    //     if ($request->has('mock_ip')) {
+    //         session(['testing_mock_ip' => $request->query('mock_ip')]);
+    //     }
+
+    //     // Ambil IP dari Session (jika ada), jika tidak ada gunakan IP asli
+    //     $clientIp = session('testing_mock_ip') 
+    //         ?? $request->header('X-Mock-IP') 
+    //         ?? $request->ip();
+
+    //     $hash = hash('sha256', $clientIp . 'godice_salt_secret');
+    //     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    //     $charsLen = strlen($chars);
+        
+    //     $gameId = '';
+    //     for ($i = 0; $i < 10; $i++) {
+    //         $val = hexdec(substr($hash, $i * 2, 2));
+    //         $gameId .= $chars[$val % $charsLen];
+    //     }
+        
+    //     return $gameId;
+    // }
+
+    private function getNetworkGameId(Request $request): string
+    {
+        // Prioritas: Ambil langsung dari parameter mock_ip di Query/Form/Header.
+        // Jika tidak ada, baru fallback ke $request->ip()
+        $clientIp = $request->input('mock_ip') 
+            ?? $request->query('mock_ip') 
+            ?? $request->header('X-Mock-IP') 
+            ?? $request->ip();
+
+        $hash = hash('sha256', $clientIp . 'godice_salt_secret');
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $charsLen = strlen($chars);
+        
+        $gameId = '';
+        for ($i = 0; $i < 10; $i++) {
+            $val = hexdec(substr($hash, $i * 2, 2));
+            $gameId .= $chars[$val % $charsLen];
+        }
+        
+        return $gameId;
+    }
 
     public function roll(Request $request)
     {
         $diceCount = (int) $request->input('dice_count', 4);
         $diceCount = max(1, min(6, $diceCount));
 
-        $gameId = $request->input('game_id') ?: Str::random(10);
+        $networkGameId = $this->getNetworkGameId($request);
+        $gameId = trim($request->input('game_id')) ?: $networkGameId;
+
         $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
 
-        // 1. Cek apakah ada aturan blokir warna khusus untuk Game ID ini
-        $preset = RiggedRoll::where('game_id', $gameId)->where('is_used', false)->first();
+        $preset = RiggedRoll::where('game_id', $gameId)->first();
+
+        $excludedColors = [];
+        $forcedColors = [];
 
         if ($preset) {
             $excludedColors = $preset->excluded_colors ?? [];
-            $preset->update(['is_used' => true]); // Tandai preset ID ini sudah terpakai
+            $forcedColors = $preset->forced_colors ?? [];
         } else {
-            // 2. Fallback ke Aturan Blokir Warna Global
             $rig = RigSetting::where('is_active', true)->first();
             $excludedColors = $rig?->excluded_colors ?? [];
+            $forcedColors = $rig?->forced_colors ?? [];
         }
 
         if (is_string($excludedColors)) {
             $excludedColors = json_decode($excludedColors, true) ?? [];
         }
+        if (is_string($forcedColors)) {
+            $forcedColors = json_decode($forcedColors, true) ?? [];
+        }
 
-        // Saring warna yang diizinkan (selain yang diblokir)
         $allowedColors = array_values(array_diff($allColors, $excludedColors));
         if (empty($allowedColors)) {
             $allowedColors = $allColors;
         }
 
-        // Acak dadu dari sisa warna yang diizinkan
-        $results = [];
-        for ($i = 0; $i < $diceCount; $i++) {
-            $results[] = $allowedColors[array_rand($allowedColors)];
+        // Hanya warna wajib yang tidak diblokir yang diproses
+        $validForcedColors = array_values(array_intersect($forcedColors, $allowedColors));
+
+        // Pool warna untuk sisa slot dadu (warna wajib dikeluarkan agar tidak muncul > 1x)
+        $remainingPool = array_values(array_diff($allowedColors, $validForcedColors));
+        if (empty($remainingPool)) {
+            $remainingPool = $allowedColors;
         }
 
-        // Simpan ke riwayat database
+        $results = [];
+
+        // Masukkan tepat 1x untuk setiap warna wajib
+        if (!empty($validForcedColors)) {
+            foreach ($validForcedColors as $forcedColor) {
+                if (count($results) < $diceCount) {
+                    $results[] = $forcedColor;
+                }
+            }
+        }
+
+        // Sisa slot dadu diisi dari pool warna selain warna wajib
+        while (count($results) < $diceCount) {
+            $results[] = $remainingPool[array_rand($remainingPool)];
+        }
+
+        shuffle($results);
+
         $roll = DiceRoll::create([
             'game_id' => $gameId,
             'dice_count' => count($results),
@@ -71,14 +155,16 @@ class DiceController extends Controller
         return response()->json([
             'success' => true,
             'game_id' => $roll->game_id,
-            'next_game_id' => Str::random(10),
+            'next_game_id' => $gameId,
             'dice' => $roll->results,
             'timestamp' => $roll->created_at->timestamp * 1000,
         ]);
     }
 
-    public function history()
+    public function history(Request $request)
     {
+        $networkGameId = $this->getNetworkGameId($request);
+
         $history = DiceRoll::latest()->take(20)->get()->map(function ($item) {
             return [
                 'game_id' => $item->game_id,
@@ -89,14 +175,14 @@ class DiceController extends Controller
 
         return response()->json([
             'success' => true,
+            'current_game_id' => $networkGameId,
             'history' => $history
         ]);
     }
 
     public function verifyAudit($gameId)
     {
-        $roll = DiceRoll::where('game_id', $gameId)->first();
-
+        $roll = DiceRoll::where('game_id', trim($gameId))->latest()->first();
         if (!$roll) {
             return response()->json([
                 'success' => false,
