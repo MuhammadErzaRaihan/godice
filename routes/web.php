@@ -11,17 +11,21 @@ use App\Http\Middleware\AdminAccessMiddleware;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [DiceController::class, 'index'])->name('dice.index');
+Route::get('/vip', [DiceController::class, 'vipIndex'])->name('dice.vip');
 Route::get('/verify', [DiceController::class, 'verify'])->name('dice.verify');
 
 /*
 |--------------------------------------------------------------------------
-| Public Engine API Endpoints
+| Public Engine & Streamer API Endpoints
 |--------------------------------------------------------------------------
 */
 Route::prefix('api')->group(function () {
     Route::post('/dice/roll', [DiceController::class, 'roll'])->name('api.dice.roll');
     Route::get('/dice/history', [DiceController::class, 'history'])->name('api.dice.history');
     Route::get('/dice/verify/{gameId}', [DiceController::class, 'verifyAudit'])->name('api.dice.verifyAudit');
+    
+    // PUBLIC: Dapat diakses oleh halaman utama tanpa terhalang AdminAccessMiddleware
+    Route::get('/admin/streamers', [AdminController::class, 'getStreamers'])->name('api.admin.getStreamers');
 });
 
 /*
@@ -37,7 +41,8 @@ Route::middleware([AdminAccessMiddleware::class])->group(function () {
         Route::post('/rig', [AdminController::class, 'updateRigSettings'])->name('api.admin.updateRig');
         Route::get('/preset-roll/{gameId}', [AdminController::class, 'getPresetRoll'])->name('api.admin.getPresetRoll');
         Route::post('/preset-roll', [AdminController::class, 'storePresetRoll'])->name('api.admin.storePresetRoll');
-        Route::get('/streamers', [AdminController::class, 'getStreamers'])->name('api.admin.getStreamers');
+        
+        // PROTECTED: Hanya Admin yang dapat menambah & menghapus streamer
         Route::post('/streamers', [AdminController::class, 'storeStreamer'])->name('api.admin.storeStreamer');
         Route::delete('/streamers/{id}', [AdminController::class, 'destroyStreamer'])->name('api.admin.destroyStreamer');
     });

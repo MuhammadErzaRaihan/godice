@@ -6,13 +6,78 @@
 <div id="view-main" class="transition-all duration-300">
     
     <!-- Pixel Art Stage Banner -->
-    <div class="w-full max-w-3xl mx-auto mb-6 bg-red-900/40 border border-red-700/50 rounded-2xl p-4 text-center relative overflow-hidden backdrop-blur-sm shadow-xl">
+    {{-- <div class="w-full max-w-3xl mx-auto mb-6 bg-red-900/40 border border-red-700/50 rounded-2xl p-4 text-center relative overflow-hidden backdrop-blur-sm shadow-xl">
         <div class="absolute -top-6 -left-6 opacity-20 text-6xl">🐉</div>
         <div class="absolute -bottom-6 -right-6 opacity-20 text-6xl">🌴</div>
         <h2 class="font-game text-3xl sm:text-4xl text-yellow-300 drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)] tracking-wide uppercase">
             GO DICE
         </h2>
         <p class="text-xs sm:text-sm font-semibold text-red-100 tracking-wider">VIRTUAL DICE SIMULATOR FOR LIVE STREAMS & GAMES</p>
+    </div> --}}
+
+    <!-- Pixel Art Stage Banner -->
+    {{-- <div class="w-full max-w-3xl mx-auto mb-6 bg-red-900/40 border border-red-700/50 rounded-2xl p-4 text-center relative overflow-hidden backdrop-blur-sm shadow-xl">
+        <div class="absolute -top-6 -left-6 opacity-20 text-6xl">🐉</div>
+        <div class="absolute -bottom-6 -right-6 opacity-20 text-6xl">🌴</div>
+
+        <h2 class="font-game text-3xl sm:text-4xl text-yellow-300 drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)] tracking-wide uppercase flex items-center justify-center gap-2">
+            <span>GO DICE</span>
+            
+            <!-- Embel-embel Badge VIP -->
+            @if($isVip ?? false)
+                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-red-950 text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-full shadow-lg border border-yellow-200">
+                    <i class="fa-solid fa-crown text-amber-900"></i> VIP
+                </span>
+            @endif
+        </h2>
+        {{-- <p class="text-xs sm:text-sm font-semibold text-red-100 tracking-wider">VIRTUAL DICE SIMULATOR FOR LIVE STREAMS & GAMES</p> --}}
+    {{-- </div> --}} 
+    
+    <!-- Stage Banner Plain (Tanpa Container Box / Border / Emoji) -->
+    <div class="w-full max-w-3xl mx-auto mb-6 text-center">
+        <!-- Judul Utama GO DICE -->
+        <h2 class="font-game text-3xl sm:text-4xl text-yellow-300 drop-shadow-[0_3px_3px_rgba(0,0,0,0.8)] tracking-wide uppercase">
+            GO DICE
+        </h2>
+
+        @if($isVip ?? false)
+            @php
+                $handle = $vipStreamer->handle ?? 'ezakoi';
+                $cleanHandle = ltrim($handle, '@');
+                $avatar = $vipStreamer->avatar_url ?? "https://unavatar.io/tiktok/{$cleanHandle}";
+                $name = $vipStreamer->name ?? 'EZAKOI';
+            @endphp
+
+            <!-- VIP Streamer Info (Foto Profil + Nama + VIP ROOM) -->
+            <div class="mt-2 flex items-center justify-center gap-2 flex-wrap">
+                <!-- Foto Profil Streamer -->
+                <div class="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-amber-400 bg-gradient-to-tr from-yellow-400 to-amber-600 flex items-center justify-center shadow">
+                    <img src="{{ $avatar }}" 
+                        alt="{{ $name }}" 
+                        class="w-full h-full object-cover relative z-10" 
+                        onerror="this.style.display='none'">
+                    
+                    <span class="font-bold text-[10px] text-red-950 absolute inset-0 flex items-center justify-center">
+                        {{ strtoupper(substr($name, 0, 1)) }}
+                    </span>
+                </div>
+
+                <!-- Nama Streamer -->
+                <span class="font-bold text-sm sm:text-base text-white tracking-wide">
+                    {{ $name }}
+                </span>
+
+                <!-- Badge VIP ROOM -->
+                <span class="inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-red-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow border border-yellow-200">
+                    <i class="fa-solid fa-crown text-amber-900"></i> VIP ROOM
+                </span>
+            </div>
+        @else
+            <!-- Subtitle Standar Halaman Biasa -->
+            <p class="mt-1 text-xs sm:text-sm font-semibold text-red-100 tracking-wider">
+                VIRTUAL DICE SIMULATOR FOR LIVE STREAMS & GAMES
+            </p>
+        @endif
     </div>
 
     <!-- Responsive 3-Column Layout -->

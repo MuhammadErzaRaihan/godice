@@ -9,10 +9,24 @@ use App\Models\RiggedRoll;
 
 class DiceController extends Controller
 {
+    // public function index()
+    // {
+        
+    //     return view('dice.index');
+    // }
+
     public function index()
     {
-        
-        return view('dice.index');
+        return view('dice.index', [
+            'isVip' => false
+        ]);
+    }
+
+    public function vipIndex()
+    {
+        return view('dice.index', [
+            'isVip' => true
+        ]);
     }
 
     public function verify()

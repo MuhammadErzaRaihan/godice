@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\RigSetting;
 use App\Models\Streamer;
 use App\Models\RiggedRoll;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -114,7 +115,9 @@ class AdminController extends Controller
 
     public function getStreamers()
     {
-        $streamers = Streamer::latest()->get();
+        $streamers = Streamer::orderBy('is_live','desc')
+        ->latest()
+        ->get();
 
         return response()->json([
             'success' => true,
@@ -134,7 +137,7 @@ class AdminController extends Controller
             'name' => strtoupper($request->name),
             'handle' => $request->handle,
             'url' => $request->url,
-            'is_live' => true,
+            'is_live' => false,
         ]);
 
         return response()->json([
