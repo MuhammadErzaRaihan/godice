@@ -377,12 +377,7 @@ function renderTargetedToggles() {
     }
 }
 
-setInterval(() => {
-    const delta = Math.floor(Math.random() * 7) - 3;
-    state.usersOnline = Math.max(500, state.usersOnline + delta);
-    const userEl = document.getElementById('users-online-count');
-    if (userEl) userEl.innerText = state.usersOnline;
-}, 4000);
+
 
 document.addEventListener('DOMContentLoaded', () => {
     loadStreamers();
@@ -404,3 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderGameId();
     }
 });
+
+setInterval(() => {
+    fetchRollHistory(false);
+}, 10000);

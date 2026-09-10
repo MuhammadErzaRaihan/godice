@@ -174,7 +174,7 @@
                     
                     <div class="bg-red-950/90 border border-emerald-500/40 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-emerald-300">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span>Users online: <strong id="users-online-count" class="text-white">792</strong></span>
+                        <span>Users online: <strong id="users-online-count" class="text-white">1</strong></span>
                     </div>
                 </div>
 
@@ -243,7 +243,7 @@
                     This page allows you to choose any number of dice between <strong class="text-yellow-300">1 and 6</strong>, each having 6 sides and 6 possible colors:
                     <span class="text-red-400 font-bold">Red</span>, 
                     <span class="text-orange-400 font-bold">Orange</span>, 
-                    <span class="text-yellow-300 font-bold">Yellow</span>, 
+                    <span class="text-yellow-400 font-bold">Yellow</span>, 
                     <span class="text-green-400 font-bold">Green</span>, 
                     <span class="text-blue-400 font-bold">Blue</span>, and 
                     <span class="text-purple-400 font-bold">Purple</span>.
@@ -256,7 +256,7 @@
                     ABOUT US
                 </h4>
                 <p class="text-xs leading-relaxed text-red-100">
-                    GoDice.com is an online dice simulator that anyone can use to roll virtual dice when no real dice are available. With this free simulator you can roll dice for online games, board games, live stream games, or any other game of chance.
+                    Godice.net is an online dice simulator that anyone can use to roll virtual dice when no real dice are available. With this free simulator you can roll dice for online games, board games, live stream games, or any other game of chance.
                 </p>
             </div>
 

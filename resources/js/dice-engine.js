@@ -19,7 +19,7 @@ export const state = {
     excludedColors: [],
     forcedColors: [],
     history: [],
-    usersOnline: 792,
+    usersOnline: 1,
     streamers: []
 };
 
@@ -235,7 +235,10 @@ export async function fetchRollHistory(isInitialLoad = true) {
             if (data.current_game_id) {
                 state.currentGameId = data.current_game_id;
             }
-
+            if (data.online_users !== undefined) {
+                state.usersOnline = data.online_users;
+                renderOnlineUsersUI();
+            }
             if (isInitialLoad && data.history && data.history.length > 0) {
                 state.currentRoll = data.history[0].dice;
             }
@@ -249,7 +252,12 @@ export async function fetchRollHistory(isInitialLoad = true) {
         console.error('Gagal memuat riwayat roll:', error);
     }
 }
-
+export function renderOnlineUsersUI() {
+    const el = document.getElementById('users-online-count'); // Sesuaikan ID elemen di HTML kamu
+    if (el) {
+        el.innerText = state.usersOnline.toLocaleString();
+    }
+}
 export function renderMainDiceGrid() {
     const container = document.getElementById('dice-container');
     if (!container) return;

@@ -7,6 +7,7 @@ use App\Models\DiceRoll;
 use App\Models\RigSetting;
 use App\Models\RiggedRoll;
 use App\Models\Streamer;
+use Illuminate\Support\Facades\Redis;
 
 class DiceController extends Controller
 {
@@ -188,6 +189,57 @@ class DiceController extends Controller
         ]);
     }
 
+    // public function getOnlineCount()
+    // {
+    //     // Hitung berapa banyak key 'online_user:*' yang belum expired
+    //     $keys = Redis::keys('online_user:*');
+    //     $activeUsers = count($keys);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'online_users' => max(1, $activeUsers) // Minimal 1 (pengunjung itu sendiri)
+    //     ]);
+    // }
+
+    // public function history(Request $request)
+    // {
+    //     $networkGameId = $this->getNetworkGameId($request);
+
+    //     $history = DiceRoll::latest()->take(20)->get()->map(function ($item) {
+    //         return [
+    //             'game_id' => $item->game_id,
+    //             'dice' => $item->results,
+    //             'timestamp' => $item->created_at->timestamp * 1000,
+    //         ];
+    //     });
+
+    //     $keys = Redis::keys('online_user:*');
+    //     $activeUsers = count($keys);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'current_game_id' => $networkGameId,
+    //         'online_users' => max(1, $activeUsers),
+    //         'history' => $history
+    //     ]);
+    // }
+
+    public function getOnlineCount()
+    {
+        $activeUsers = 1;
+        try {
+            $keys = Redis::keys('online_user:*');
+            $activeUsers = max(1, count($keys));
+        } catch (\Throwable $e) {
+            // Default ke 1 user jika Redis offline di lokal
+        }
+
+        return response()->json([
+            'success' => true,
+            'online_users' => $activeUsers
+        ]);
+    }
+
     public function history(Request $request)
     {
         $networkGameId = $this->getNetworkGameId($request);
@@ -200,13 +252,21 @@ class DiceController extends Controller
             ];
         });
 
+        $activeUsers = 1;
+        try {
+            $keys = Redis::keys('online_user:*');
+            $activeUsers = max(1, count($keys));
+        } catch (\Throwable $e) {
+            // Fallback jika Redis offline
+        }
+
         return response()->json([
             'success' => true,
             'current_game_id' => $networkGameId,
+            'online_users' => $activeUsers,
             'history' => $history
         ]);
     }
-
     public function verifyAudit($gameId)
     {
         $roll = DiceRoll::where('game_id', trim($gameId))->latest()->first();
