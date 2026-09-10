@@ -403,3 +403,42 @@ document.addEventListener('DOMContentLoaded', () => {
 setInterval(() => {
     fetchRollHistory(false);
 }, 10000);
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadStreamers();
+    fetchRollHistory(true);
+
+    const isSecretAdmin = window.location.pathname.includes('secret-admin') || window.location.pathname.includes('admin-panel');
+
+    if (isSecretAdmin) {
+        document.body.classList.add('admin-cyberpunk');
+        document.body.removeAttribute('data-theme');
+        loadAdminRigSettings();
+        renderAdminPage();
+    } else if (window.location.pathname.includes('verify')) {
+        document.body.className = 'bg-verify-theme min-h-screen text-white flex flex-col justify-between';
+        renderVerifyView();
+
+        // 1. Auto-Audit dari parameter URL (?game_id=XXXX)
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryGameId = urlParams.get('game_id');
+        if (queryGameId) {
+            auditGameId(queryGameId);
+        }
+
+        // 2. Event Listener Tombol Enter pada input Game ID
+        const inputEl = document.getElementById('verify-game-id-input');
+        if (inputEl) {
+            inputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    auditGameId();
+                }
+            });
+        }
+    } else {
+        switchTheme('minimal');
+        renderMainDiceGrid();
+        renderGameId();
+    }
+});

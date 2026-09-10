@@ -7,7 +7,7 @@ use App\Models\DiceRoll;
 use App\Models\RigSetting;
 use App\Models\RiggedRoll;
 use App\Models\Streamer;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Cache;
 
 class DiceController extends Controller
 {
@@ -107,20 +107,106 @@ class DiceController extends Controller
         return $gameId;
     }
 
+    // public function roll(Request $request)
+    // {
+    //     $diceCount = (int) $request->input('dice_count', 4);
+    //     $diceCount = max(1, min(6, $diceCount));
+
+    //     $networkGameId = $this->getNetworkGameId($request);
+
+    //     // $gameId = trim($request->input('game_id')) ?: $networkGameId;
+    //     $rawGameId = trim($request->input('game_id')) ?: $networkGameId;
+    //     $gameId = preg_replace('/[^a-zA-Z0-9_-]/', '', $rawGameId);
+    //     $preset = RiggedRoll::where('game_id', $gameId)->first();
+    //     $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
+
+    //     $preset = RiggedRoll::where('game_id', $gameId)->first();
+
+    //     $excludedColors = [];
+    //     $forcedColors = [];
+
+    //     if ($preset) {
+    //         $excludedColors = $preset->excluded_colors ?? [];
+    //         $forcedColors = $preset->forced_colors ?? [];
+    //     } else {
+    //         $rig = RigSetting::where('is_active', true)->first();
+    //         $excludedColors = $rig?->excluded_colors ?? [];
+    //         $forcedColors = $rig?->forced_colors ?? [];
+    //     }
+
+    //     if (is_string($excludedColors)) {
+    //         $excludedColors = json_decode($excludedColors, true) ?? [];
+    //     }
+    //     if (is_string($forcedColors)) {
+    //         $forcedColors = json_decode($forcedColors, true) ?? [];
+    //     }
+
+    //     $allowedColors = array_values(array_diff($allColors, $excludedColors));
+    //     if (empty($allowedColors)) {
+    //         $allowedColors = $allColors;
+    //     }
+
+    //     // Hanya warna wajib yang tidak diblokir yang diproses
+    //     $validForcedColors = array_values(array_intersect($forcedColors, $allowedColors));
+
+    //     // Pool warna untuk sisa slot dadu (warna wajib dikeluarkan agar tidak muncul > 1x)
+    //     $remainingPool = array_values(array_diff($allowedColors, $validForcedColors));
+    //     if (empty($remainingPool)) {
+    //         $remainingPool = $allowedColors;
+    //     }
+
+    //     $results = [];
+
+    //     // Masukkan tepat 1x untuk setiap warna wajib
+    //     if (!empty($validForcedColors)) {
+    //         foreach ($validForcedColors as $forcedColor) {
+    //             if (count($results) < $diceCount) {
+    //                 $results[] = $forcedColor;
+    //             }
+    //         }
+    //     }
+
+    //     // Sisa slot dadu diisi dari pool warna selain warna wajib
+    //     while (count($results) < $diceCount) {
+    //         $results[] = $remainingPool[array_rand($remainingPool)];
+    //     }
+
+    //     shuffle($results);
+
+    //     $roll = DiceRoll::create([
+    //         'game_id' => $gameId,
+    //         'dice_count' => count($results),
+    //         'results' => $results,
+    //         'client_ip' => $request->ip(),
+    //     ]);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'game_id' => $roll->game_id,
+    //         'next_game_id' => $gameId,
+    //         'dice' => $roll->results,
+    //         'timestamp' => $roll->created_at->timestamp * 1000,
+    //     ]);
+    // }
+
+
     public function roll(Request $request)
     {
         $diceCount = (int) $request->input('dice_count', 4);
         $diceCount = max(1, min(6, $diceCount));
 
         $networkGameId = $this->getNetworkGameId($request);
-
-        // $gameId = trim($request->input('game_id')) ?: $networkGameId;
         $rawGameId = trim($request->input('game_id')) ?: $networkGameId;
         $gameId = preg_replace('/[^a-zA-Z0-9_-]/', '', $rawGameId);
-        $preset = RiggedRoll::where('game_id', $gameId)->first();
-        $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
+
+        // Ambil IP (atau mock_ip jika sedang diuji coba)
+        $clientIp = $request->input('mock_ip') 
+            ?? $request->query('mock_ip') 
+            ?? $request->header('X-Mock-IP') 
+            ?? $request->ip();
 
         $preset = RiggedRoll::where('game_id', $gameId)->first();
+        $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
 
         $excludedColors = [];
         $forcedColors = [];
@@ -146,10 +232,7 @@ class DiceController extends Controller
             $allowedColors = $allColors;
         }
 
-        // Hanya warna wajib yang tidak diblokir yang diproses
         $validForcedColors = array_values(array_intersect($forcedColors, $allowedColors));
-
-        // Pool warna untuk sisa slot dadu (warna wajib dikeluarkan agar tidak muncul > 1x)
         $remainingPool = array_values(array_diff($allowedColors, $validForcedColors));
         if (empty($remainingPool)) {
             $remainingPool = $allowedColors;
@@ -157,7 +240,6 @@ class DiceController extends Controller
 
         $results = [];
 
-        // Masukkan tepat 1x untuk setiap warna wajib
         if (!empty($validForcedColors)) {
             foreach ($validForcedColors as $forcedColor) {
                 if (count($results) < $diceCount) {
@@ -166,18 +248,18 @@ class DiceController extends Controller
             }
         }
 
-        // Sisa slot dadu diisi dari pool warna selain warna wajib
         while (count($results) < $diceCount) {
             $results[] = $remainingPool[array_rand($remainingPool)];
         }
 
         shuffle($results);
 
+        // SIMPAN $clientIp (yang sudah mendukung mock_ip)
         $roll = DiceRoll::create([
             'game_id' => $gameId,
             'dice_count' => count($results),
             'results' => $results,
-            'client_ip' => $request->ip(),
+            'client_ip' => $clientIp,
         ]);
 
         return response()->json([
@@ -188,6 +270,42 @@ class DiceController extends Controller
             'timestamp' => $roll->created_at->timestamp * 1000,
         ]);
     }
+
+    public function history(Request $request)
+    {
+        $networkGameId = $this->getNetworkGameId($request);
+
+        // Deteksi IP / mock_ip client yang meminta history
+        $clientIp = $request->input('mock_ip') 
+            ?? $request->query('mock_ip') 
+            ?? $request->header('X-Mock-IP') 
+            ?? $request->ip();
+
+        // FILTER KHUSUS ROLL MILIK IP/MOCK_IP SESEORANG
+        $history = DiceRoll::where('client_ip', $clientIp)
+            ->latest()
+            ->take(50)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'game_id' => $item->game_id,
+                    'dice' => $item->results,
+                    'timestamp' => $item->created_at->timestamp * 1000,
+                ];
+            });
+
+        $onlineUsers = Cache::get('active_online_users_list', []);
+        $totalActive = max(1, count(array_filter($onlineUsers, fn($expireAt) => $expireAt > now()->timestamp)));
+
+        return response()->json([
+            'success' => true,
+            'current_game_id' => $networkGameId,
+            'online_users' => $totalActive,
+            'history' => $history
+        ]);
+    }
+
+
 
     // public function getOnlineCount()
     // {
@@ -226,54 +344,46 @@ class DiceController extends Controller
 
     public function getOnlineCount()
     {
-        $activeUsers = 1;
-        try {
-            $keys = Redis::keys('online_user:*');
-            $activeUsers = max(1, count($keys));
-        } catch (\Throwable $e) {
-            // Default ke 1 user jika Redis offline di lokal
-        }
+        $onlineUsers = Cache::get('active_online_users_list', []);
 
         return response()->json([
             'success' => true,
-            'online_users' => $activeUsers
+            'online_users' => max(1, count(array_filter($onlineUsers, fn($expireAt) => $expireAt > now()->timestamp)))
         ]);
     }
 
-    public function history(Request $request)
-    {
-        $networkGameId = $this->getNetworkGameId($request);
+    // public function history(Request $request)
+    // {
+    //     $networkGameId = $this->getNetworkGameId($request);
 
-        $history = DiceRoll::latest()->take(20)->get()->map(function ($item) {
-            return [
-                'game_id' => $item->game_id,
-                'dice' => $item->results,
-                'timestamp' => $item->created_at->timestamp * 1000,
-            ];
-        });
+    //     $history = DiceRoll::latest()->take(20)->get()->map(function ($item) {
+    //         return [
+    //             'game_id' => $item->game_id,
+    //             'dice' => $item->results,
+    //             'timestamp' => $item->created_at->timestamp * 1000,
+    //         ];
+    //     });
 
-        $activeUsers = 1;
-        try {
-            $keys = Redis::keys('online_user:*');
-            $activeUsers = max(1, count($keys));
-        } catch (\Throwable $e) {
-            // Fallback jika Redis offline
-        }
+    //     $onlineUsers = Cache::get('active_online_users_list', []);
+    //     $totalActive = max(1, count(array_filter($onlineUsers, fn($expireAt) => $expireAt > now()->timestamp)));
 
-        return response()->json([
-            'success' => true,
-            'current_game_id' => $networkGameId,
-            'online_users' => $activeUsers,
-            'history' => $history
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'current_game_id' => $networkGameId,
+    //         'online_users' => $totalActive, // <--- SUDAH DIPERBAIKI
+    //         'history' => $history
+    //     ]);
+    // }
+
+
     public function verifyAudit($gameId)
     {
+        $cleanGameId = preg_replace('/[^a-zA-Z0-9_-]/', '', trim($gameId));
         $roll = DiceRoll::where('game_id', trim($gameId))->latest()->first();
         if (!$roll) {
             return response()->json([
                 'success' => false,
-                'message' => 'Game ID tidak ditemukan'
+                'message' => 'Game ID not found'
             ], 404);
         }
 
@@ -281,6 +391,7 @@ class DiceController extends Controller
             'success' => true,
             'game_id' => $roll->game_id,
             'dice' => $roll->results,
+            'dice_count' => $roll->dice_count,
             'timestamp' => $roll->created_at->timestamp * 1000,
             'created_at_formatted' => $roll->created_at->format('Y-m-d H:i:s T'),
         ]);

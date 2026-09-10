@@ -9,21 +9,21 @@
         <a href="#how-it-works" class="hover:text-yellow-300">DICE GAMES</a>
     </div>
 
-    <div class="flex flex-wrap justify-center gap-4 text-xs font-semibold text-red-300">
+    {{-- <div class="flex flex-wrap justify-center gap-4 text-xs font-semibold text-red-300">
         <button onclick="switchView('main')" class="hover:text-white">HOME</button>
         <a href="#" onclick="alert('Privacy Policy Placeholder')" class="hover:text-white">PRIVACY POLICY</a>
         <a href="#" onclick="alert('Ad-Free Login Placeholder')" class="hover:text-white">AD-FREE LOGIN</a>
         <a href="#" onclick="alert('VIP Login Placeholder')" class="hover:text-white">VIP LOGIN</a>
-    </div>
+    </div> --}}
 
     <!-- Language Selector Dropdown -->
-    <div class="inline-block">
+    {{-- <div class="inline-block">
         <select class="bg-red-900 border border-red-700 text-xs text-yellow-300 font-bold rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer">
             <option>CHANGE LANGUAGE (EN)</option>
             <option>INDONESIA (ID)</option>
             <option>ESPAÑOL (ES)</option>
         </select>
-    </div>
+    </div> --}}
 
     <div class="text-[11px] text-red-400 font-medium">
         © 2026 GODICE - All rights reserved.

@@ -131,7 +131,7 @@
                     <div>
                         <label class="block text-[10px] uppercase tracking-wider text-red-200 mb-1 font-bold">Theme / Variant</label>
                         <select id="theme-selector" onchange="switchTheme(this.value)" class="w-full bg-red-950 border-2 border-red-700 text-yellow-300 text-xs sm:text-sm font-bold rounded-xl px-2 py-2 focus:outline-none focus:border-yellow-400 cursor-pointer text-center">
-                            <option value="arcade">SAB-RED</option>
+                            <option value="arcade">RED</option>
                             <option value="pixel">PIXEL CRAFT</option>
                             <option value="luxury">LUXURY GOLD</option>
                             <option value="minimal" selected>MINIMALIST</option>

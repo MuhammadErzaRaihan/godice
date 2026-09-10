@@ -16,9 +16,9 @@
         <!-- Game ID Input & Audit Search Button -->
         <div class="mt-6 bg-sky-950/80 rounded-2xl p-4 border border-sky-600/50 space-y-3">
             <label class="block text-xs font-bold text-sky-200 uppercase tracking-wider text-left">
-                <i class="fa-solid fa-fingerprint mr-1"></i> MASUKKAN GAME ID UNTUK AUDIT:
+                <i class="fa-solid fa-fingerprint mr-1"></i> ENTER GAME ID:
             </label>
-            <input type="text" id="verify-game-id-input" placeholder="Tempel / Masukkan Game ID di sini..." class="w-full bg-sky-900 border-2 border-sky-400 text-yellow-300 font-mono text-center text-lg sm:text-xl font-bold rounded-xl py-2 focus:outline-none focus:border-yellow-400 shadow-inner placeholder:text-sky-400/60 uppercase">
+            <input type="text" id="verify-game-id-input" placeholder="ENTER ID" class="w-full bg-sky-900 border-2 border-sky-400 text-yellow-300 font-mono text-center text-lg sm:text-xl font-bold rounded-xl py-2 focus:outline-none focus:border-yellow-400 shadow-inner placeholder:text-sky-400/60 uppercase">
             <button onclick="auditGameId()" class="btn-yellow w-full py-2.5 rounded-xl font-game text-lg font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
                 <i class="fa-solid fa-magnifying-glass"></i> AUDIT GAME ID
             </button>
@@ -28,7 +28,7 @@
     <!-- Live Audit Result Card (Muncul saat pencarian audit) -->
     <div id="verify-audit-result-card" class="hidden card-blue rounded-3xl p-5 text-center shadow-2xl space-y-4">
         <div class="border-b border-sky-600/60 pb-2 flex items-center justify-between px-1">
-            <h3 class="font-game text-lg text-yellow-300 uppercase tracking-wide">HASIL AUDIT DATABASE</h3>
+            <h3 class="font-game text-lg text-yellow-300 uppercase tracking-wide">RESULT FROM DATABASE</h3>
             <span id="verify-audit-status" class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500">VERIFIED MATCH</span>
         </div>
         
@@ -45,7 +45,7 @@
     <div class="card-blue rounded-3xl p-5 text-center shadow-2xl space-y-4">
         <div class="border-b border-sky-600/60 pb-2">
             <h3 class="font-game text-xl text-yellow-300 uppercase tracking-wide">
-                MOST RECENT ROLL
+                MOST RECENT ROLL FROM THE SERVER
             </h3>
             <p class="text-xs font-bold text-red-300 uppercase tracking-widest">(DELAYED BY 10 SECONDS)</p>
         </div>
@@ -72,7 +72,7 @@
     <!-- Last 50 Rolls Log Table -->
     <div class="card-blue rounded-3xl p-5 shadow-2xl space-y-4">
         <h4 class="font-game text-xl text-yellow-300 uppercase tracking-wide border-b border-sky-600/60 pb-2">
-            LAST 50 ROLLS IN THIS SESSION
+            LAST 50 ROLLS
         </h4>
 
         <div id="verify-history-50-list" class="space-y-3 max-h-96 overflow-y-auto pr-1">

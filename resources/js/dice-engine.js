@@ -277,14 +277,73 @@ export function renderMainDiceGrid() {
     });
 }
 
-export async function auditGameId() {
+// export async function auditGameId() {
+//     const inputEl = document.getElementById('verify-game-id-input');
+//     const gameId = inputEl?.value.trim();
+
+//     if (!gameId) {
+//         alert('Input Game ID!');
+//         return;
+//     }
+
+//     const resultCard = document.getElementById('verify-audit-result-card');
+//     const diceContainer = document.getElementById('verify-audit-dice-container');
+//     const timestampEl = document.getElementById('verify-audit-timestamp');
+//     const statusBadge = document.getElementById('verify-audit-status');
+
+//     try {
+//         const response = await fetch(`/api/dice/verify/${encodeURIComponent(gameId)}`);
+//         const data = await response.json();
+
+//         if (resultCard) resultCard.classList.remove('hidden');
+
+//         if (data.success) {
+//             if (statusBadge) {
+//                 statusBadge.innerText = 'VERIFIED MATCH';
+//                 statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500';
+//             }
+
+//             if (diceContainer) {
+//                 diceContainer.innerHTML = '';
+//                 data.dice.forEach(color => {
+//                     const cfg = COLOR_MAP[color] || COLOR_MAP['Red'];
+//                     const box = document.createElement('div');
+//                     box.className = 'w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center border-2 border-white/20 shadow';
+//                     box.style.backgroundColor = cfg.bg;
+//                     box.innerHTML = '<div class="w-3 h-3 bg-white rounded-full"></div>';
+//                     diceContainer.appendChild(box);
+//                 });
+//             }
+
+//             if (timestampEl) {
+//                 timestampEl.innerText = `Game ID: ${data.game_id} | Waktu Roll: ${data.created_at_formatted}`;
+//             }
+//         } else {
+//             if (statusBadge) {
+//                 statusBadge.innerText = 'NOT FOUND / INVALID';
+//                 statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-500';
+//             }
+//             if (diceContainer) {
+//                 diceContainer.innerHTML = `<span class="text-xs text-rose-300 font-semibold">${data.message || 'Game ID tidak ditemukan di database.'}</span>`;
+//             }
+//             if (timestampEl) timestampEl.innerText = '';
+//         }
+//     } catch (error) {
+//         console.error('Gagal audit Game ID:', error);
+//         alert('Terjadi kesalahan koneksi saat verifikasi.');
+//     }
+// }
+
+export async function auditGameId(targetId = null) {
     const inputEl = document.getElementById('verify-game-id-input');
-    const gameId = inputEl?.value.trim();
+    const gameId = targetId || inputEl?.value.trim();
 
     if (!gameId) {
         alert('Silakan masukkan Game ID terlebih dahulu!');
         return;
     }
+
+    if (inputEl) inputEl.value = gameId;
 
     const resultCard = document.getElementById('verify-audit-result-card');
     const diceContainer = document.getElementById('verify-audit-dice-container');
@@ -308,15 +367,20 @@ export async function auditGameId() {
                 data.dice.forEach(color => {
                     const cfg = COLOR_MAP[color] || COLOR_MAP['Red'];
                     const box = document.createElement('div');
-                    box.className = 'w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center border-2 border-white/20 shadow';
+                    box.className = 'w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center border-2 border-white/20 shadow-lg transition-transform hover:scale-105';
                     box.style.backgroundColor = cfg.bg;
-                    box.innerHTML = '<div class="w-3 h-3 bg-white rounded-full"></div>';
+                    box.innerHTML = '<div class="w-3 h-3 bg-white rounded-full shadow-inner"></div>';
                     diceContainer.appendChild(box);
                 });
             }
 
             if (timestampEl) {
-                timestampEl.innerText = `Game ID: ${data.game_id} | Waktu Roll: ${data.created_at_formatted}`;
+                timestampEl.innerHTML = `
+                    <div class="space-y-1 text-xs text-sky-200">
+                        <p><span class="text-sky-400 font-bold">Game ID:</span> <span class="font-mono text-yellow-300 font-bold">${data.game_id}</span> (${data.dice_count} Dice)</p>
+                        <p><span class="text-sky-400 font-bold">Roll Time:</span> ${data.created_at_formatted} <span class="text-sky-300/70">(${data.time_ago})</span></p>
+                    </div>
+                `;
             }
         } else {
             if (statusBadge) {
@@ -324,7 +388,7 @@ export async function auditGameId() {
                 statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-500';
             }
             if (diceContainer) {
-                diceContainer.innerHTML = `<span class="text-xs text-rose-300 font-semibold">${data.message || 'Game ID tidak ditemukan di database.'}</span>`;
+                diceContainer.innerHTML = `<span class="text-xs text-rose-300 font-semibold py-2">${data.message || 'Game ID tidak ditemukan di database.'}</span>`;
             }
             if (timestampEl) timestampEl.innerText = '';
         }
