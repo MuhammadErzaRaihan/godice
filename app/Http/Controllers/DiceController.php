@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\DiceRoll;
 use App\Models\RigSetting;
 use App\Models\RiggedRoll;
+use App\Models\Streamer;
 
 class DiceController extends Controller
 {
@@ -22,10 +23,19 @@ class DiceController extends Controller
         ]);
     }
 
-    public function vipIndex()
+    public function vipIndex($token)
     {
+        // Cari streamer berdasarkan token rahasia
+        $vipStreamer = Streamer::where('vip_token', trim($token))->first();
+
+        // Jika token tidak cocok/tidak ditemukan, kembalikan 404 (URL dianggap tidak ada)
+        if (!$vipStreamer) {
+            abort(404);
+        }
+
         return view('dice.index', [
-            'isVip' => true
+            'isVip' => true,
+            'vipStreamer' => $vipStreamer
         ]);
     }
 
@@ -102,8 +112,11 @@ class DiceController extends Controller
         $diceCount = max(1, min(6, $diceCount));
 
         $networkGameId = $this->getNetworkGameId($request);
-        $gameId = trim($request->input('game_id')) ?: $networkGameId;
 
+        // $gameId = trim($request->input('game_id')) ?: $networkGameId;
+        $rawGameId = trim($request->input('game_id')) ?: $networkGameId;
+        $gameId = preg_replace('/[^a-zA-Z0-9_-]/', '', $rawGameId);
+        $preset = RiggedRoll::where('game_id', $gameId)->first();
         $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
 
         $preset = RiggedRoll::where('game_id', $gameId)->first();

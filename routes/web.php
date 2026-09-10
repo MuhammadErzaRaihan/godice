@@ -11,7 +11,7 @@ use App\Http\Middleware\AdminAccessMiddleware;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [DiceController::class, 'index'])->name('dice.index');
-Route::get('/vip', [DiceController::class, 'vipIndex'])->name('dice.vip');
+Route::get('/vip/{token}', [DiceController::class, 'vipIndex'])->name('dice.vip');
 Route::get('/verify', [DiceController::class, 'verify'])->name('dice.verify');
 
 /*

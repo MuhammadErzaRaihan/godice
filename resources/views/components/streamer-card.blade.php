@@ -7,6 +7,7 @@
     'is_live' => false
 ])
 
+
 <a href="{{ $url }}" target="_blank" rel="noopener noreferrer" 
    class="card-inner p-2 rounded-xl flex items-center justify-between hover:bg-red-900/90 transition cursor-pointer border border-red-800 text-left group relative">
     

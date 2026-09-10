@@ -125,18 +125,49 @@ class AdminController extends Controller
         ]);
     }
 
+    // public function storeStreamer(Request $request)
+    // {
+    //     $request->validate([
+    //         'name' => 'required|string|max:100',
+    //         'handle' => 'required|string|max:100|regex:/^@?[A-Za-z0-9._]+$/',
+    //         'url' => 'required|url',
+    //     ]);
+
+    //     $cleanHandle = ltrim(strtolower($request->handle), '@');
+    //     $secretToken = 'vip-' . $cleanHandle . '-' . Str::random(8);
+
+    //     $streamer = Streamer::create([
+    //         'name' => strtoupper($request->name),
+    //         'handle' => $request->handle,
+    //         'url' => filter_var($request->url, FILTER_SANITIZE_URL),
+    //         'vip_token' => $secretToken,
+    //         'is_live' => false,
+    //     ]);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Streamer berhasil ditambahkan',
+    //         'streamer' => $streamer
+    //     ]);
+    // }
+
     public function storeStreamer(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:100',
-            'handle' => 'required|string|max:100',
+            'handle' => 'required|string|max:100|regex:/^@?[A-Za-z0-9._]+$/',
             'url' => 'required|url',
         ]);
 
+        $cleanHandle = ltrim(strtolower($request->handle), '@');
+        $secretToken = 'vip-' . $cleanHandle . '-' . Str::random(8);
+
         $streamer = Streamer::create([
-            'name' => strtoupper($request->name),
-            'handle' => $request->handle,
-            'url' => $request->url,
+            // Tambahkan strip_tags agar aman dari Stored XSS
+            'name' => strtoupper(strip_tags($request->name)),
+            'handle' => '@' . strip_tags($cleanHandle),
+            'url' => filter_var($request->url, FILTER_SANITIZE_URL),
+            'vip_token' => $secretToken,
             'is_live' => false,
         ]);
 
@@ -146,7 +177,7 @@ class AdminController extends Controller
             'streamer' => $streamer
         ]);
     }
-
+    
     public function destroyStreamer($id)
     {
         $streamer = Streamer::find($id);

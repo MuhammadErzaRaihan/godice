@@ -9,7 +9,7 @@ class Streamer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'handle', 'url', 'avatar_url', 'is_live'];
+    protected $fillable = ['name', 'handle', 'url', 'vip_token', 'avatar_url', 'is_live'];
 
     protected $casts = [
         'is_live' => 'boolean',
