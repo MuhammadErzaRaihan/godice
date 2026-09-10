@@ -85,14 +85,49 @@ class DiceController extends Controller
     //     return $gameId;
     // }
 
+
+    private function getClientIp(Request $request): string
+    {
+        // Parameter mock_ip HANYA diizinkan jika APP_ENV di .env bernilai local atau testing
+        if (app()->environment('local', 'testing')) {
+            $mockIp = $request->input('mock_ip') 
+                ?? $request->query('mock_ip') 
+                ?? $request->header('X-Mock-IP');
+
+            if ($mockIp) {
+                return $mockIp;
+            }
+        }
+
+        // Di Production, selalu gunakan IP asli pengunjung
+        return $request->ip();
+    }
+
+    // private function getNetworkGameId(Request $request): string
+    // {
+    //     // Prioritas: Ambil langsung dari parameter mock_ip di Query/Form/Header.
+    //     // Jika tidak ada, baru fallback ke $request->ip()
+    //     $clientIp = $request->input('mock_ip') 
+    //         ?? $request->query('mock_ip') 
+    //         ?? $request->header('X-Mock-IP') 
+    //         ?? $request->ip();
+
+    //     $hash = hash('sha256', $clientIp . 'godice_salt_secret');
+    //     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    //     $charsLen = strlen($chars);
+        
+    //     $gameId = '';
+    //     for ($i = 0; $i < 10; $i++) {
+    //         $val = hexdec(substr($hash, $i * 2, 2));
+    //         $gameId .= $chars[$val % $charsLen];
+    //     }
+        
+    //     return $gameId;
+    // }
+
     private function getNetworkGameId(Request $request): string
     {
-        // Prioritas: Ambil langsung dari parameter mock_ip di Query/Form/Header.
-        // Jika tidak ada, baru fallback ke $request->ip()
-        $clientIp = $request->input('mock_ip') 
-            ?? $request->query('mock_ip') 
-            ?? $request->header('X-Mock-IP') 
-            ?? $request->ip();
+        $clientIp = $this->getClientIp($request);
 
         $hash = hash('sha256', $clientIp . 'godice_salt_secret');
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -106,6 +141,8 @@ class DiceController extends Controller
         
         return $gameId;
     }
+
+
 
     // public function roll(Request $request)
     // {
@@ -200,11 +237,11 @@ class DiceController extends Controller
         $gameId = preg_replace('/[^a-zA-Z0-9_-]/', '', $rawGameId);
 
         // Ambil IP (atau mock_ip jika sedang diuji coba)
-        $clientIp = $request->input('mock_ip') 
-            ?? $request->query('mock_ip') 
-            ?? $request->header('X-Mock-IP') 
-            ?? $request->ip();
-
+        // $clientIp = $request->input('mock_ip') 
+        //     ?? $request->query('mock_ip') 
+        //     ?? $request->header('X-Mock-IP') 
+        //     ?? $request->ip();
+        $clientIp = $this->getClientIp($request);
         $preset = RiggedRoll::where('game_id', $gameId)->first();
         $allColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple'];
 
@@ -274,12 +311,12 @@ class DiceController extends Controller
     public function history(Request $request)
     {
         $networkGameId = $this->getNetworkGameId($request);
-
+        $clientIp = $this->getClientIp($request);
         // Deteksi IP / mock_ip client yang meminta history
-        $clientIp = $request->input('mock_ip') 
-            ?? $request->query('mock_ip') 
-            ?? $request->header('X-Mock-IP') 
-            ?? $request->ip();
+        // $clientIp = $request->input('mock_ip') 
+        //     ?? $request->query('mock_ip') 
+        //     ?? $request->header('X-Mock-IP') 
+        //     ?? $request->ip();
 
         // FILTER KHUSUS ROLL MILIK IP/MOCK_IP SESEORANG
         $history = DiceRoll::where('client_ip', $clientIp)

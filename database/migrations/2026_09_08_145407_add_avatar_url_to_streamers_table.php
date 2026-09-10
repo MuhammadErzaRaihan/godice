@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('streamers', function (Blueprint $table) {
-            //
+            $table->dropColumn('avatar_url');
         });
     }
 };
